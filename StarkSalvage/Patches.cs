@@ -58,11 +58,9 @@ namespace StarkSalvage
                         Main.HBSLog.Log($"+ {maxMechParts / 12.0} {limbLocation} Intact");
                     }
                 }
-
-                // round .5 down by subtracting a little
-                var mechParts = (int)Math.Round(bits - 0.05);
-
-                Main.HBSLog.Log($"= {bits - 0.05} ~= {mechParts}");
+                
+                var mechParts = (int)Math.Floor(bits);
+                Main.HBSLog.Log($"= floor({bits}) = {mechParts}");
 
                 if (mechParts > 0)
                     instTrav.Method("CreateAndAddMechPart", simGame.Constants, mechDef, mechParts, finalPotentialSalvage).GetValue();
