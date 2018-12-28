@@ -38,27 +38,31 @@ namespace StarkSalvage
                 // thanks to morph's AdjustedMechSalvage for pointing out the critical component stuff
                 if (!pilotDef.IsIncapacitated && !mechDef.IsDestroyed && !mechDef.Inventory.Any(x => x.Def != null && x.Def.CriticalComponent && x.DamageLevel == ComponentDamageLevel.Destroyed))
                     continue;
-                
-                float bits = 0;
 
+                double bits = 0;
+                Main.HBSLog.Log($"Evaluating {mechDef.Description.Id}");
+                
                 // CT is worth 1/2 of the salvage
                 if (!mechDef.IsLocationDestroyed(ChassisLocations.CenterTorso))
-                    bits += maxMechParts / 2;
+                {
+                    bits += maxMechParts / 2.0;
+                    Main.HBSLog.Log($"+ {maxMechParts / 2.0} CT Intact");
+                }
                 
                 // limbs combined are worth the other 1/2 of the salvage, so 1/8 each
                 foreach (var limbLocation in LIMB_LOCATIONS)
+                {
                     if (!mechDef.IsLocationDestroyed(limbLocation))
-                        bits += maxMechParts / 8;
-
-                // just legs 2/8 + 4/8 = 6/8 salvage * 5 mechPieces = 3.75 ~ 4
-                // both shoulders + leg = 1/8 + 4/8 = 5/8 * 5 = 3.125 ~ 3
-                // cored with all limbs = 4/8 = 4/8 * 5 = 2.5  ~ 2
-                // cored with 3 limbs 3/8 * 5
+                    {
+                        bits += maxMechParts / 8.0;
+                        Main.HBSLog.Log($"+ {maxMechParts / 8.0} {limbLocation} Intact");
+                    }
+                }
 
                 // round .5 down by subtracting a little
-                int mechParts = (int)Math.Round(bits - 0.05);
+                var mechParts = (int)Math.Round(bits - 0.05);
 
-                Main.HBSLog.Log($"{mechDef.Description.Id} {mechParts}");
+                Main.HBSLog.Log($"= {bits - 0.05} ~= {mechParts}");
 
                 if (mechParts > 0)
                     instTrav.Method("CreateAndAddMechPart", simGame.Constants, mechDef, mechParts, finalPotentialSalvage).GetValue();
