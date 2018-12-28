@@ -11,7 +11,7 @@ namespace StarkSalvage
     [HarmonyPatch(typeof(Contract), "GenerateSalvage")]
     public static class Contract_GenerateSalvage_Patch
     {
-        private static readonly ChassisLocations[] LIMB_LOCATIONS = { ChassisLocations.LeftArm, ChassisLocations.RightArm, ChassisLocations.LeftLeg, ChassisLocations.RightLeg };
+        private static readonly ChassisLocations[] BODY_LOCATIONS = { ChassisLocations.LeftArm, ChassisLocations.RightArm, ChassisLocations.LeftLeg, ChassisLocations.RightLeg, ChassisLocations.LeftTorso, ChassisLocations.RightTorso };
 
         public static void Postfix(Contract __instance, List<UnitResult> enemyMechs, List<VehicleDef> enemyVehicles, List<UnitResult> lostUnits, bool logResults = false)
         {
@@ -49,13 +49,13 @@ namespace StarkSalvage
                     Main.HBSLog.Log($"+ {maxMechParts / 2.0} CT Intact");
                 }
                 
-                // limbs combined are worth the other 1/2 of the salvage, so 1/8 each
-                foreach (var limbLocation in LIMB_LOCATIONS)
+                // rest of the 6 pieces combined are worth the other 1/2 of the salvage, so 1/12 each
+                foreach (var limbLocation in BODY_LOCATIONS)
                 {
                     if (!mechDef.IsLocationDestroyed(limbLocation))
                     {
-                        bits += maxMechParts / 8.0;
-                        Main.HBSLog.Log($"+ {maxMechParts / 8.0} {limbLocation} Intact");
+                        bits += maxMechParts / 12.0;
+                        Main.HBSLog.Log($"+ {maxMechParts / 12.0} {limbLocation} Intact");
                     }
                 }
 
