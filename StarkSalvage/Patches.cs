@@ -21,12 +21,13 @@ namespace StarkSalvage
                 return;
             
             var instTrav = Traverse.Create(__instance);
+
             var finalPotentialSalvage = instTrav.Field("finalPotentialSalvage").GetValue<List<SalvageDef>>();
             var maxMechParts = simGame.Constants.Story.DefaultMechPartMax;
 
             // remove all mech parts
-            var removedSalvage = finalPotentialSalvage.RemoveAll(x => x.Type == SalvageDef.SalvageType.MECH_PART);
-            Main.HBSLog.Log($"Removed {removedSalvage} mech pieces.");
+            var numRemovedSalvage = finalPotentialSalvage.RemoveAll(x => x.Type == SalvageDef.SalvageType.MECH_PART);
+            Main.HBSLog.Log($"Removed {numRemovedSalvage} mech pieces.");
 
             // go through enemyMechs and re-add mech parts based on damage
             foreach (var unitResult in enemyMechs)
@@ -67,7 +68,39 @@ namespace StarkSalvage
             }
         }
     }
-    
+
+    [HarmonyPatch(typeof(SimGameState), "AddMechPart")]
+    public static class SimGameState_AddMechPart_Patch
+    {
+        public static bool Prefix(SimGameState __instance, string id)
+        {
+            int itemCount = __instance.GetItemCount(id, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
+            int defaultMechPartMax = __instance.Constants.Story.DefaultMechPartMax;
+
+            // we would build a mech
+            if (itemCount + 1 >= defaultMechPartMax)
+            {
+                // remove the parts from inventory
+                for (int i = 0; i < defaultMechPartMax - 1; i++)
+                    Traverse.Create(__instance).Method("RemoveItemStat", new Type[] { typeof(string), typeof(string), typeof(bool) }).GetValue(id, "MECHPART", false);
+                
+                // add the flatpacked mech
+                var mechDef = __instance.DataManager.MechDefs.Get(id);
+                __instance.AddItemStat(mechDef.Chassis.Description.Id, mechDef.GetType(), false);
+
+                // display a message
+                __instance.InterruptQueue.QueuePauseNotification("Mech Built and Flatpacked", mechDef.Chassis.YangsThoughts, __instance.GetCrewPortrait(SimGameCrew.Crew_Yang), "notification_mechreadycomplete");
+                __instance.InterruptQueue.DisplayIfAvailable();
+                __instance.MessageCenter.PublishMessage(new SimGameMechAddedMessage(mechDef, defaultMechPartMax, true));
+                
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+
     public static class Main
     {
         public static ILog HBSLog;
