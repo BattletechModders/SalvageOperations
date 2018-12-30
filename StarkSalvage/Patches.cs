@@ -19,7 +19,7 @@ namespace StarkSalvage
 
             if (simGame == null)
                 return;
-            
+
             var instTrav = Traverse.Create(__instance);
 
             var finalPotentialSalvage = instTrav.Field("finalPotentialSalvage").GetValue<List<SalvageDef>>();
@@ -42,14 +42,14 @@ namespace StarkSalvage
 
                 double bits = 0;
                 Main.HBSLog.Log($"Evaluating {mechDef.Description.Id}");
-                
+
                 // CT is worth 1/2 of the salvage
                 if (!mechDef.IsLocationDestroyed(ChassisLocations.CenterTorso))
                 {
                     bits += maxMechParts / 2.0;
                     Main.HBSLog.Log($"+ {maxMechParts / 2.0} CT Intact");
                 }
-                
+
                 // rest of the 6 pieces combined are worth the other 1/2 of the salvage, so 1/12 each
                 foreach (var limbLocation in BODY_LOCATIONS)
                 {
@@ -59,7 +59,7 @@ namespace StarkSalvage
                         Main.HBSLog.Log($"+ {maxMechParts / 12.0} {limbLocation} Intact");
                     }
                 }
-                
+
                 var mechParts = (int)Math.Floor(bits);
                 Main.HBSLog.Log($"= floor({bits}) = {mechParts}");
 
@@ -83,7 +83,7 @@ namespace StarkSalvage
                 // remove the parts from inventory
                 for (int i = 0; i < defaultMechPartMax - 1; i++)
                     Traverse.Create(__instance).Method("RemoveItemStat", new Type[] { typeof(string), typeof(string), typeof(bool) }).GetValue(id, "MECHPART", false);
-                
+
                 // add the flatpacked mech
                 var mechDef = __instance.DataManager.MechDefs.Get(id);
                 __instance.AddItemStat(mechDef.Chassis.Description.Id, mechDef.GetType(), false);
@@ -92,7 +92,7 @@ namespace StarkSalvage
                 __instance.InterruptQueue.QueuePauseNotification("Mech Built and Flatpacked", mechDef.Chassis.YangsThoughts, __instance.GetCrewPortrait(SimGameCrew.Crew_Yang), "notification_mechreadycomplete");
                 __instance.InterruptQueue.DisplayIfAvailable();
                 __instance.MessageCenter.PublishMessage(new SimGameMechAddedMessage(mechDef, defaultMechPartMax, true));
-                
+
                 return false;
             }
 
