@@ -1,4 +1,6 @@
 ﻿using BattleTech;
+using BattleTech.Data;
+using BattleTech.UI;
 using Harmony;
 using HBS.Logging;
 using System;
@@ -69,34 +71,42 @@ namespace StarkSalvage
         }
     }
 
+
     [HarmonyPatch(typeof(SimGameState), "AddMechPart")]
     public static class SimGameState_AddMechPart_Patch
     {
         public static bool Prefix(SimGameState __instance, string id)
         {
-            int itemCount = __instance.GetItemCount(id, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
-            int defaultMechPartMax = __instance.Constants.Story.DefaultMechPartMax;
-
-            // we would build a mech
-            if (itemCount + 1 >= defaultMechPartMax)
+            // we're in the middle of resolving a contract
+            if (Main.IsResolvingContract)
             {
-                // remove the parts from inventory
-                for (int i = 0; i < defaultMechPartMax - 1; i++)
-                    Traverse.Create(__instance).Method("RemoveItemStat", new Type[] { typeof(string), typeof(string), typeof(bool) }).GetValue(id, "MECHPART", false);
+                if (!Main.SalvageFromContract.ContainsKey(id))
+                    Main.SalvageFromContract[id] = 0;
 
-                // add the flatpacked mech
-                var mechDef = __instance.DataManager.MechDefs.Get(id);
-                __instance.AddItemStat(mechDef.Chassis.Description.Id, mechDef.GetType(), false);
-
-                // display a message
-                __instance.InterruptQueue.QueuePauseNotification("Mech Built and Flatpacked", mechDef.Chassis.YangsThoughts, __instance.GetCrewPortrait(SimGameCrew.Crew_Yang), "notification_mechreadycomplete");
-                __instance.InterruptQueue.DisplayIfAvailable();
-                __instance.MessageCenter.PublishMessage(new SimGameMechAddedMessage(mechDef, defaultMechPartMax, true));
-
+                Main.SalvageFromContract[id]++;
                 return false;
             }
 
-            return true;
+            Main.TryBuildMechs(__instance, new Dictionary<string, int> { { id, 1 } });
+            return false;
+        }
+    }
+
+
+    [HarmonyPatch(typeof(SimGameState), "ResolveCompleteContract")]
+    public static class SimGameState_ResolveCompleteContract_Patch
+    {
+        public static void Prefix()
+        {
+            Main.IsResolvingContract = true;
+        }
+
+        public static void Postfix(SimGameState __instance)
+        {
+            Main.TryBuildMechs(__instance, Main.SalvageFromContract);
+
+            Main.IsResolvingContract = false;
+            Main.SalvageFromContract.Clear();
         }
     }
 
@@ -104,6 +114,178 @@ namespace StarkSalvage
     public static class Main
     {
         public static ILog HBSLog;
+        public static bool IsResolvingContract = false;
+        public static Dictionary<string, int> SalvageFromContract = new Dictionary<string, int>();
+
+
+        private static void AddMechPieces(SimGameState simGame, string id, int num)
+        {
+            for (int i = 0; i < num; i++)
+                simGame.AddItemStat(id, "MECHPART", false);
+
+            HBSLog.Log($"Added {num} {id} pieces");
+        }
+
+        private static void RemoveMechPieces(SimGameState simGame, string id, int num)
+        {
+            for (int i = 0; i < num; i++)
+                Traverse.Create(simGame).Method("RemoveItemStat", new Type[] { typeof(string), typeof(string), typeof(bool) }).GetValue(id, "MECHPART", false);
+
+            HBSLog.Log($"Removed {num} {id} pieces");
+        }
+
+        private static int GetMechPieces(SimGameState simGame, MechDef mechDef)
+        {
+            return simGame.GetItemCount(mechDef.Description.Id, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
+        }
+
+        private static List<MechDef> GetAllMatchingVariants(DataManager dataManager, string prefabID)
+        {
+            var variants = new List<MechDef>();
+
+            dataManager.MechDefs
+                .Where(x => x.Value.Chassis.PrefabIdentifier == prefabID)
+                .Do(x => variants.Add(x.Value)); // thanks harmony for the do extention method
+
+            return variants;
+        }
+
+        private static List<MechDef> GetAllMatchingVariants(DataManager dataManager, MechDef mechDef)
+        {
+            return GetAllMatchingVariants(dataManager, mechDef.Chassis.PrefabIdentifier);
+        }
+
+
+        private static void GenerateMechPopup(SimGameState simGame, string prefabID)
+        {
+            var mechPieces = new Dictionary<string, int>();
+            var variants = GetAllMatchingVariants(simGame.DataManager, prefabID);
+
+            MechDef highestVariant = null;
+            int highest = 0;
+            foreach (var variant in variants)
+            {
+                mechPieces[variant.Description.Id] = GetMechPieces(simGame, variant);
+
+                if (mechPieces[variant.Description.Id] > highest)
+                {
+                    highestVariant = variant;
+                    highest = mechPieces[variant.Description.Id];
+                }
+
+                HBSLog.Log($"{variant.Description.Id} has {mechPieces[variant.Description.Id]} pieces, highest {highest}");
+            }
+
+            if (highestVariant == null)
+                return;
+
+            var popup = new SimGameInterruptManager.GenericPopupEntry(
+                $"Could Build {highestVariant.Description.UIName}",
+                $"Commander, you've got enough 'Mech parts to build a {highestVariant.Description.UIName} from the pieces of multiple related 'Mechs. Do you want to do this?",
+                false)
+                .AddButton("No")
+                .AddButton("Yes", new Action(() => BuildMech(simGame, highestVariant)));
+
+            simGame.InterruptQueue.AddInterrupt(popup, true);
+        }
+
+        private static void BuildMech(SimGameState simGame, MechDef mechDef)
+        {
+            HBSLog.Log($"BuildMech {mechDef.Description.Name}");
+
+            var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
+            var thisParts = GetMechPieces(simGame, mechDef);
+
+            // cap thisParts at defaultMechPartMax
+            thisParts = Math.Min(thisParts, defaultMechPartMax);
+
+            // remove the parts from this variant from inventory
+            RemoveMechPieces(simGame, mechDef.Description.Id, thisParts);
+
+            // there could still be parts remaining that we need to delete from other variants
+            var numPartsRemaining = simGame.Constants.Story.DefaultMechPartMax - thisParts;
+            if (numPartsRemaining > 0)
+            {
+                // delete 1 from each variant until we've gotten all the parts that we need deleted
+                var matchingVariants = GetAllMatchingVariants(simGame.DataManager, mechDef);
+                while (numPartsRemaining > 0)
+                {
+                    int partsRemoved = 0;
+                    foreach (var variant in matchingVariants)
+                    {
+                        var parts = GetMechPieces(simGame, variant);
+                        if (parts > 0)
+                        {
+                            RemoveMechPieces(simGame, variant.Description.Id, 1);
+
+                            numPartsRemaining--;
+                            partsRemoved++;
+
+                            if (numPartsRemaining <= 0)
+                                break;
+                        }
+                    }
+
+                    if (partsRemoved == 0)
+                        break;
+                }
+            }
+
+            // add the flatpacked mech
+            simGame.AddItemStat(mechDef.Chassis.Description.Id, mechDef.GetType(), false);
+
+            // display a message
+            simGame.InterruptQueue.QueuePauseNotification(
+                $"{mechDef.Description.UIName} Built",
+                mechDef.Chassis.YangsThoughts,
+                simGame.GetCrewPortrait(SimGameCrew.Crew_Yang),
+                "notification_mechreadycomplete");
+
+            simGame.InterruptQueue.DisplayIfAvailable();
+            simGame.MessageCenter.PublishMessage(new SimGameMechAddedMessage(mechDef, defaultMechPartMax, true));
+        }
+
+
+        public static void TryBuildMechs(SimGameState simGame, Dictionary<string, int> mechPieces)
+        {
+            HBSLog.Log($"TryBuildMechs {mechPieces.Count} mechIDs");
+            var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
+            var chassisPieces = new Dictionary<string, int>();
+
+            // count chassis pieces from mechPieces
+            foreach (var mechID in mechPieces.Keys)
+            {
+                var mechDef = simGame.DataManager.MechDefs.Get(mechID);
+
+                if (!chassisPieces.ContainsKey(mechDef.Chassis.PrefabIdentifier))
+                    chassisPieces[mechDef.Chassis.PrefabIdentifier] = 0;
+
+                AddMechPieces(simGame, mechID, mechPieces[mechID]);
+                HBSLog.Log($"{mechID} has prefabID {mechDef.Chassis.PrefabIdentifier}");
+            }
+
+            // try to build each chassis
+            var prefabIDs = chassisPieces.Keys.ToList();
+            foreach (var prefabID in prefabIDs)
+            {
+                // add chassis pieces that we already have
+                var matchingMechDefs = GetAllMatchingVariants(simGame.DataManager, prefabID);
+
+                foreach (var mechDef in matchingMechDefs)
+                    chassisPieces[prefabID] += GetMechPieces(simGame, mechDef);
+
+                HBSLog.Log($"{prefabID} has {chassisPieces[prefabID]} pieces");
+
+                if (chassisPieces[prefabID] >= defaultMechPartMax)
+                {
+                    // has enough pieces to build a mech, generate popup
+                    HBSLog.Log($"Generting popup for {prefabID}");
+                    GenerateMechPopup(simGame, prefabID);
+                }
+            }
+        }
+
+
         public static void Init()
         {
             var harmony = HarmonyInstance.Create("io.github.mpstark.StarkSalvage");
