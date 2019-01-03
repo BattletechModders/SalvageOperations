@@ -306,12 +306,20 @@ namespace StarkSalvage
             if (highestVariant == null)
                 return;
 
+            // TODO: sort variants by number of pieces
+
             // build the result set
             int optionIdx = 0;
-            var options = new SimGameEventOption[mechPieces.Count];
+            var options = new SimGameEventOption[mechPieces.Count + 1];
             foreach (var variant in mechPieces.Keys)
             {
                 HBSLog.Log($"Building event option {optionIdx} for {variant}");
+
+                if (optionIdx > 2)
+                {
+                    HBSLog.Log($"Had more than 3 options, truncating at 3");
+                    break;
+                }
 
                 var mechDef = simGame.DataManager.MechDefs.Get(variant);
                 options[optionIdx++] = new SimGameEventOption
@@ -329,6 +337,33 @@ namespace StarkSalvage
                     }
                 };
             }
+
+            // add the option to not build anything
+            options[optionIdx] = new SimGameEventOption
+            {
+                Description = new BaseDescriptionDef("BuildNothing", $"Tell Yang not to build anything right now.", "BuildNothing", ""),
+                RequirementList = null,
+                ResultSets = new SimGameEventResultSet[]
+                {
+                    new SimGameEventResultSet
+                    {
+                        Description = new BaseDescriptionDef("BuildNothing", "BuildNothing", "BuildNothing", ""),
+                        Weight = 100,
+                        Results = new SimGameEventResult[] { new SimGameEventResult
+                        {
+                            Stats = new SimGameStat[0],
+                            Scope = EventScope.Company,
+                            Actions = new SimGameResultAction[0],
+                            AddedTags = new HBS.Collections.TagSet(),
+                            RemovedTags = new HBS.Collections.TagSet(),
+                            ForceEvents = new SimGameForcedEvent[0],
+                            Requirements = null,
+                            ResultDuration = 0,
+                            TemporaryResult = false
+                        } }
+                    }
+                }
+            };
 
             // build the event itself
             var eventDef = new SimGameEventDef(
