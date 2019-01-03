@@ -110,6 +110,51 @@ namespace StarkSalvage
         }
     }
 
+    // this is to patch the stat display on the event, since it's broken with flatpacked mechs and mech parts
+    [HarmonyPatch(typeof(DataManagerExtensions), "GetStatDescDef")]
+    public static class DataManagerExtensions_GetStatDescDef_Patch
+    {
+        public static bool Prefix(DataManager dataManager, SimGameStat simGameStat, ref SimGameStatDescDef __result)
+        {
+            string text = "SimGameStatDesc_" + simGameStat.name;
+            if (!dataManager.Exists(BattleTechResourceType.SimGameStatDescDef, text))
+            {
+                if (!text.Contains("SimGameStatDesc_Item"))
+                    return true;
+
+                var itemStatDesc = dataManager.SimGameStatDescDefs.Get("SimGameStatDesc_Item");
+                var split = text.Split('.');
+
+                if (text.Contains("MECHPART"))
+                {
+                    var statDescDef = new SimGameStatDescDef();
+                    var mechDef = dataManager.MechDefs.Get(split[2]);
+
+                    if (mechDef == null)
+                        return true;
+
+                    statDescDef.Description.SetName($"{mechDef.Description.UIName} Parts");
+                    __result = statDescDef;
+                    return false;
+                }
+                else if (text.Contains("MechDef"))
+                {
+                    var statDescDef = new SimGameStatDescDef();
+                    var chassisDef = dataManager.ChassisDefs.Get(split[2]);
+
+                    if (chassisDef == null)
+                        return true;
+
+                    statDescDef.Description.SetName($"{chassisDef.Description.UIName}");
+                    __result = statDescDef;
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
+
 
     public static class Main
     {
@@ -117,22 +162,9 @@ namespace StarkSalvage
         public static bool IsResolvingContract = false;
         public static Dictionary<string, int> SalvageFromContract = new Dictionary<string, int>();
 
+        private static SimGameEventTracker eventTracker = new SimGameEventTracker();
+        private static bool hasInitEventTracker = false;
 
-        private static void AddMechPieces(SimGameState simGame, string id, int num)
-        {
-            for (int i = 0; i < num; i++)
-                simGame.AddItemStat(id, "MECHPART", false);
-
-            HBSLog.Log($"Added {num} {id} pieces");
-        }
-
-        private static void RemoveMechPieces(SimGameState simGame, string id, int num)
-        {
-            for (int i = 0; i < num; i++)
-                Traverse.Create(simGame).Method("RemoveItemStat", new Type[] { typeof(string), typeof(string), typeof(bool) }).GetValue(id, "MECHPART", false);
-
-            HBSLog.Log($"Removed {num} {id} pieces");
-        }
 
         private static int GetMechPieces(SimGameState simGame, MechDef mechDef)
         {
@@ -155,54 +187,43 @@ namespace StarkSalvage
             return GetAllMatchingVariants(dataManager, mechDef.Chassis.PrefabIdentifier);
         }
 
-
-        private static void GenerateMechPopup(SimGameState simGame, string prefabID)
+        private static string GetItemStatID(string id, string type)
         {
-            var mechPieces = new Dictionary<string, int>();
-            var variants = GetAllMatchingVariants(simGame.DataManager, prefabID);
-
-            MechDef highestVariant = null;
-            int highest = 0;
-            foreach (var variant in variants)
-            {
-                mechPieces[variant.Description.Id] = GetMechPieces(simGame, variant);
-
-                if (mechPieces[variant.Description.Id] > highest)
-                {
-                    highestVariant = variant;
-                    highest = mechPieces[variant.Description.Id];
-                }
-
-                HBSLog.Log($"{variant.Description.Id} has {mechPieces[variant.Description.Id]} pieces, highest {highest}");
-            }
-
-            if (highestVariant == null)
-                return;
-
-            var popup = new SimGameInterruptManager.GenericPopupEntry(
-                $"Could Build {highestVariant.Description.UIName}",
-                $"Commander, you've got enough 'Mech parts to build a {highestVariant.Description.UIName} from the pieces of multiple related 'Mechs. Do you want to do this?",
-                false)
-                .AddButton("No")
-                .AddButton("Yes", new Action(() => BuildMech(simGame, highestVariant)));
-
-            simGame.InterruptQueue.AddInterrupt(popup, true);
+            return string.Format("{0}.{1}.{2}", "Item", type, id);
         }
 
-        private static void BuildMech(SimGameState simGame, MechDef mechDef)
+        private static string GetItemStatID(string id, Type type)
         {
-            HBSLog.Log($"BuildMech {mechDef.Description.Name}");
+            string text = type.ToString();
+            if (text.Contains("."))
+            {
+                text = text.Split(new char[]
+                {
+                    '.'
+                })[1];
+            }
+            return string.Format("{0}.{1}.{2}", "Item", text, id);
+        }
+
+
+        private static SimGameEventResult[] GetBuildMechEventResult(SimGameState simGame, MechDef mechDef)
+        {
+            HBSLog.Log($"Generate Event Result for {mechDef.Description.Id}");
+
+            var stats = new List<SimGameStat>();
+
+            // adds the flatpacked mech
+            stats.Add(new SimGameStat(GetItemStatID(mechDef.Chassis.Description.Id, typeof(MechDef)), 1));
 
             var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
             var thisParts = GetMechPieces(simGame, mechDef);
-
-            // cap thisParts at defaultMechPartMax
             thisParts = Math.Min(thisParts, defaultMechPartMax);
 
-            // remove the parts from this variant from inventory
-            RemoveMechPieces(simGame, mechDef.Description.Id, thisParts);
+            // removes the parts from the mech we're building from inventory
+            stats.Add(new SimGameStat(GetItemStatID(mechDef.Description.Id, "MECHPART"), -thisParts));
 
             // there could still be parts remaining that we need to delete from other variants
+            var otherMechParts = new Dictionary<string, int>();
             var numPartsRemaining = simGame.Constants.Story.DefaultMechPartMax - thisParts;
             if (numPartsRemaining > 0)
             {
@@ -214,9 +235,12 @@ namespace StarkSalvage
                     foreach (var variant in matchingVariants)
                     {
                         var parts = GetMechPieces(simGame, variant);
-                        if (parts > 0)
+                        if (parts > 0 && variant.Description.Id != mechDef.Description.Id)
                         {
-                            RemoveMechPieces(simGame, variant.Description.Id, 1);
+                            if (!otherMechParts.ContainsKey(variant.Description.Id))
+                                otherMechParts[variant.Description.Id] = 0;
+
+                            otherMechParts[variant.Description.Id]++;
 
                             numPartsRemaining--;
                             partsRemoved++;
@@ -231,20 +255,104 @@ namespace StarkSalvage
                 }
             }
 
-            // add the flatpacked mech
-            simGame.AddItemStat(mechDef.Chassis.Description.Id, mechDef.GetType(), false);
+            // actually add the stats that will remove the other mech parts
+            foreach (var otherMechPartsKVP in otherMechParts)
+                stats.Add(new SimGameStat(GetItemStatID(otherMechPartsKVP.Key, "MECHPART"), -otherMechPartsKVP.Value));
 
-            // display a message
-            simGame.InterruptQueue.QueuePauseNotification(
-                $"{mechDef.Description.UIName} Built",
-                mechDef.Chassis.YangsThoughts,
-                simGame.GetCrewPortrait(SimGameCrew.Crew_Yang),
-                "notification_mechreadycomplete");
+            foreach(var stat in stats)
+                HBSLog.Log($"Event Stat {stat.name} {stat.value}");
 
-            simGame.InterruptQueue.DisplayIfAvailable();
-            simGame.MessageCenter.PublishMessage(new SimGameMechAddedMessage(mechDef, defaultMechPartMax, true));
+            return new SimGameEventResult[] { new SimGameEventResult
+            {
+                Stats = stats.ToArray(),
+                Scope = EventScope.Company,
+                Actions = new SimGameResultAction[0],
+                AddedTags = new HBS.Collections.TagSet(),
+                RemovedTags = new HBS.Collections.TagSet(),
+                ForceEvents = new SimGameForcedEvent[0],
+                Requirements = null,
+                ResultDuration = 0,
+                TemporaryResult = false
+            } };
         }
 
+        private static void GenerateMechPopup(SimGameState simGame, string prefabID)
+        {
+            var mechPieces = new Dictionary<string, int>();
+            var variants = GetAllMatchingVariants(simGame.DataManager, prefabID);
+
+            MechDef highestVariant = null;
+            int highest = 0;
+            foreach (var variant in variants)
+            {
+                var pieces = GetMechPieces(simGame, variant);
+
+                if (pieces <= 0)
+                    continue;
+
+                mechPieces[variant.Description.Id] = pieces;
+
+                if (mechPieces[variant.Description.Id] > highest)
+                {
+                    highestVariant = variant;
+                    highest = mechPieces[variant.Description.Id];
+                }
+
+                HBSLog.Log($"{variant.Description.Id} has {mechPieces[variant.Description.Id]} pieces, highest {highest}");
+            }
+
+            if (highestVariant == null)
+                return;
+
+            // build the result set
+            int optionIdx = 0;
+            var options = new SimGameEventOption[mechPieces.Count];
+            foreach (var variant in mechPieces.Keys)
+            {
+                HBSLog.Log($"Building event option {optionIdx} for {variant}");
+
+                var mechDef = simGame.DataManager.MechDefs.Get(variant);
+                options[optionIdx++] = new SimGameEventOption
+                {
+                    Description = new BaseDescriptionDef(variant, $"Build the {mechDef.Description.UIName} ({mechPieces[variant]} Parts)", variant, ""),
+                    RequirementList = null,
+                    ResultSets = new SimGameEventResultSet[]
+                    {
+                        new SimGameEventResultSet
+                        {
+                            Description = new BaseDescriptionDef(variant, variant, variant, ""),
+                            Weight = 100,
+                            Results = GetBuildMechEventResult(simGame, mechDef)
+                        }
+                    }
+                };
+            }
+
+            // build the event itself
+            var eventDef = new SimGameEventDef(
+                SimGameEventDef.EventPublishState.PUBLISHED,
+                SimGameEventDef.SimEventType.UNSELECTABLE,
+                EventScope.Company,
+                new DescriptionDef(
+                    "StarkSalvageEventID",
+                    $"Playing With Salvage",
+                    "As you board, Yang asks for you to meet him in the 'Mech Bay. When you arrive, you find him grinning in front of a load of unidentifiable scrap.\r\n\r\n\"Commander, we don't have enough salvage from any single 'Mech to build ourselves a new one, but...\" He pauses dramatically. \"...I could cobble together the salvage from a couple related 'Mechs.\"\"\r\n\r\n\"What do you think?\" He grins like a kid in a candy shop. \"Which one should we build?\"",
+                    "uixTxrSpot_YangWorking.png",
+                    0, 0, false, "", "", ""),
+                new RequirementDef { Scope = EventScope.Company },
+                new RequirementDef[0],
+                new SimGameEventObject[0],
+                options,
+                1);
+
+            if (!hasInitEventTracker)
+            {
+                eventTracker.Init(new EventScope[] { EventScope.Company }, 0, 0, SimGameEventDef.SimEventType.NORMAL, simGame);
+                hasInitEventTracker = true;
+            }
+
+            simGame.InterruptQueue.QueueEventPopup(eventDef, EventScope.Company, eventTracker);
+        }
 
         public static void TryBuildMechs(SimGameState simGame, Dictionary<string, int> mechPieces)
         {
