@@ -77,6 +77,8 @@ namespace StarkSalvage
     {
         public static bool Prefix(SimGameState __instance, string id)
         {
+            __instance.AddItemStat(id, "MECHPART", false);
+
             // we're in the middle of resolving a contract
             if (Main.IsResolvingContract)
             {
@@ -360,7 +362,7 @@ namespace StarkSalvage
             var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
             var chassisPieces = new Dictionary<string, int>();
 
-            // count chassis pieces from mechPieces
+            // setup chassis pieces for the pieces that we recieved
             foreach (var mechID in mechPieces.Keys)
             {
                 var mechDef = simGame.DataManager.MechDefs.Get(mechID);
@@ -368,7 +370,6 @@ namespace StarkSalvage
                 if (!chassisPieces.ContainsKey(mechDef.Chassis.PrefabIdentifier))
                     chassisPieces[mechDef.Chassis.PrefabIdentifier] = 0;
 
-                AddMechPieces(simGame, mechID, mechPieces[mechID]);
                 HBSLog.Log($"{mechID} has prefabID {mechDef.Chassis.PrefabIdentifier}");
             }
 
