@@ -306,13 +306,12 @@ namespace StarkSalvage
             if (highestVariant == null)
                 return;
 
-            // TODO: sort variants by number of pieces
-
             // build the result set
             int optionIdx = 0;
-            var options = new SimGameEventOption[mechPieces.Count + 1];
-            foreach (var variant in mechPieces.Keys)
+            var options = new SimGameEventOption[Math.Min(4, mechPieces.Count + 1)];
+            foreach (var variantKVP in mechPieces.OrderByDescending(key => key.Value))
             {
+                var variant = variantKVP.Key;
                 HBSLog.Log($"Building event option {optionIdx} for {variant}");
 
                 if (optionIdx > 2)
@@ -330,7 +329,7 @@ namespace StarkSalvage
                     {
                         new SimGameEventResultSet
                         {
-                            Description = new BaseDescriptionDef(variant, variant, variant, ""),
+                            Description = new BaseDescriptionDef(variant, variant, $"You tell Yang that you want him to build the {mechDef.Description.UIName} and his eyes light up. \"I can't wait to get started.\"\r\n\r\nHe starts to move behind the pile of scrap, then calls out, \"Oh, and don't forget to submit the work to 'Ready' the 'Mech when you want to get started on the refit.\"", ""),
                             Weight = 100,
                             Results = GetBuildMechEventResult(simGame, mechDef)
                         }
@@ -347,7 +346,7 @@ namespace StarkSalvage
                 {
                     new SimGameEventResultSet
                     {
-                        Description = new BaseDescriptionDef("BuildNothing", "BuildNothing", "BuildNothing", ""),
+                        Description = new BaseDescriptionDef("BuildNothing", "BuildNothing", "Yang looks disappointed for a moment, then grins and shrugs, \"Saving these pieces up makes sense, I guess, never know when they might come in handy later on.\"", ""),
                         Weight = 100,
                         Results = new SimGameEventResult[] { new SimGameEventResult
                         {
