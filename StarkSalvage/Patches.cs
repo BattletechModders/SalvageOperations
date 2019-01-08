@@ -166,8 +166,6 @@ namespace StarkSalvage
             var thisMechPieces = Main.GetMechPieces(___simState, __instance.mechDef);
             var allMechPieces = Main.GetAllVariantMechPieces(___simState, __instance.mechDef);
 
-            Main.HBSLog.Log($"ListElementController_SalvageMechPart_NotListView {__instance.mechDef.Description.Id} thisPieces {thisMechPieces} allPieces {allMechPieces}");
-
             if (allMechPieces > thisMechPieces)
                 theWidget.mechPartsNumbersText.SetText($"{thisMechPieces} ({allMechPieces}) / {defaultMechPartMax}");
         }
