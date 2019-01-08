@@ -157,6 +157,22 @@ namespace StarkSalvage
         }
     }
 
+    [HarmonyPatch(typeof(ListElementController_SalvageMechPart_NotListView), "RefreshInfoOnWidget")]
+    public static class ListElementController_SalvageMechPart_NotListView_RefreshInfoOnWidget_Patch
+    {
+        public static void Postfix(ListElementController_SalvageMechPart_NotListView __instance, InventoryItemElement_NotListView theWidget, SimGameState ___simState)
+        {
+            var defaultMechPartMax = ___simState.Constants.Story.DefaultMechPartMax;
+            var thisMechPieces = Main.GetMechPieces(___simState, __instance.mechDef);
+            var allMechPieces = Main.GetAllVariantMechPieces(___simState, __instance.mechDef);
+
+            Main.HBSLog.Log($"ListElementController_SalvageMechPart_NotListView {__instance.mechDef.Description.Id} thisPieces {thisMechPieces} allPieces {allMechPieces}");
+
+            if (allMechPieces > thisMechPieces)
+                theWidget.mechPartsNumbersText.SetText($"{thisMechPieces} ({allMechPieces}) / {defaultMechPartMax}");
+        }
+    }
+
 
     public static class Main
     {
@@ -168,12 +184,23 @@ namespace StarkSalvage
         private static bool hasInitEventTracker = false;
 
 
-        private static int GetMechPieces(SimGameState simGame, MechDef mechDef)
+        public static int GetAllVariantMechPieces(SimGameState simGame, MechDef mechDef)
+        {
+            int mechPieces = 0;
+
+            var variants = GetAllMatchingVariants(simGame.DataManager, mechDef);
+            foreach (var variant in variants)
+                mechPieces += GetMechPieces(simGame, variant);
+
+            return mechPieces;
+        }
+
+        public static int GetMechPieces(SimGameState simGame, MechDef mechDef)
         {
             return simGame.GetItemCount(mechDef.Description.Id, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
         }
 
-        private static List<MechDef> GetAllMatchingVariants(DataManager dataManager, string prefabID)
+        public static List<MechDef> GetAllMatchingVariants(DataManager dataManager, string prefabID)
         {
             var variants = new List<MechDef>();
 
@@ -184,17 +211,17 @@ namespace StarkSalvage
             return variants;
         }
 
-        private static List<MechDef> GetAllMatchingVariants(DataManager dataManager, MechDef mechDef)
+        public static List<MechDef> GetAllMatchingVariants(DataManager dataManager, MechDef mechDef)
         {
             return GetAllMatchingVariants(dataManager, mechDef.Chassis.PrefabIdentifier);
         }
 
-        private static string GetItemStatID(string id, string type)
+        public static string GetItemStatID(string id, string type)
         {
             return string.Format("{0}.{1}.{2}", "Item", type, id);
         }
 
-        private static string GetItemStatID(string id, Type type)
+        public static string GetItemStatID(string id, Type type)
         {
             string text = type.ToString();
             if (text.Contains("."))
@@ -367,11 +394,11 @@ namespace StarkSalvage
             var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
 
             // setup the event string based on the situation
-            var eventString = "As you board, Yang asks for you to meet him in the 'Mech Bay. When you arrive, you find him grinning in front of a load of unidentifiable scrap.\r\n\r\n\"Commander, we don't have enough salvage from any single 'Mech to build ourselves a new one, but...\" He pauses dramatically. \"...I could cobble together the salvage from a couple related 'Mechs.\"\"\r\n\r\n\"What do you think?\" He grins like a kid in a candy shop. \"Which one should we build?\"";
+            var eventString = "As you board, Yang asks for you to meet him in the 'Mech Bay. When you arrive, you find him grinning in front of a load of unidentifiable scrap.\r\n\r\n\"Commander, we don't have enough salvage from any single 'Mech to build ourselves a new one, but...\" He pauses dramatically. \"...I could cobble together the salvage from a couple related 'Mechs.\"\r\n\r\n\"What do you think?\" He grins like a kid in a candy shop. \"Which one should we build?\"";
             if (mechPieces.Count == 1) // we have only a single option
-                eventString = $"As you board, Yang asks for you to meet him in the 'Mech Bay. When you arrive, you find him grinning in front of a load of unidentifiable scrap.\r\n\r\n\"Commander, we've got enough salvage from the {highestVariant.Description.UIName} to put it together.\" He pauses, rubbing his beard. \"But, we could save it to build another variant, later.\"\"\r\n\r\n\"What do you think?\" He grins like a kid in a candy shop. \"Should we build it?\"";
+                eventString = $"As you board, Yang asks for you to meet him in the 'Mech Bay. When you arrive, you find him grinning in front of a load of unidentifiable scrap.\r\n\r\n\"Commander, we've got enough salvage from the {highestVariant.Description.UIName} to put it together.\" He pauses, rubbing his beard. \"But, we could save it to build another variant, later.\"\r\n\r\n\"What do you think?\" He grins like a kid in a candy shop. \"Should we build it?\"";
             else if (highest >= defaultMechPartMax) // we have enough salvage to build a mech
-                eventString = "As you board, Yang asks for you to meet him in the 'Mech Bay. When you arrive, you find him grinning in front of a load of unidentifiable scrap.\r\n\r\n\"Commander, we've got enough salvage to build a 'Mech out completely, but...\" He pauses dramatically. \"...I could cobble together the salvage from a couple related 'Mechs if you wanted to build something else.\"\"\r\n\r\n\"What do you think?\" He grins like a kid in a candy shop. \"Which one should we build?\"";
+                eventString = "As you board, Yang asks for you to meet him in the 'Mech Bay. When you arrive, you find him grinning in front of a load of unidentifiable scrap.\r\n\r\n\"Commander, we've got enough salvage to build a 'Mech out completely, but...\" He pauses dramatically. \"...I could cobble together the salvage from a couple related 'Mechs if you wanted to build something else.\"\r\n\r\n\"What do you think?\" He grins like a kid in a candy shop. \"Which one should we build?\"";
 
             // build the event itself
             var eventDef = new SimGameEventDef(
