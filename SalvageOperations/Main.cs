@@ -1,6 +1,5 @@
 ﻿using BattleTech;
 using BattleTech.Data;
-using BattleTech.UI;
 using Harmony;
 using HBS.Logging;
 using System;
@@ -8,180 +7,42 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace StarkSalvage
+namespace SalvageOperations
 {
-    [HarmonyPatch(typeof(Contract), "GenerateSalvage")]
-    public static class Contract_GenerateSalvage_Patch
-    {
-        private static readonly ChassisLocations[] BODY_LOCATIONS = { ChassisLocations.LeftArm, ChassisLocations.RightArm, ChassisLocations.LeftLeg, ChassisLocations.RightLeg, ChassisLocations.LeftTorso, ChassisLocations.RightTorso };
-
-        public static void Postfix(Contract __instance, List<UnitResult> enemyMechs, List<VehicleDef> enemyVehicles, List<UnitResult> lostUnits, bool logResults = false)
-        {
-            var simGame = __instance.BattleTechGame.Simulation;
-
-            if (simGame == null)
-                return;
-
-            var instTrav = Traverse.Create(__instance);
-
-            var finalPotentialSalvage = instTrav.Field("finalPotentialSalvage").GetValue<List<SalvageDef>>();
-            var maxMechParts = simGame.Constants.Story.DefaultMechPartMax;
-
-            // remove all mech parts
-            var numRemovedSalvage = finalPotentialSalvage.RemoveAll(x => x.Type == SalvageDef.SalvageType.MECH_PART);
-            Main.HBSLog.Log($"Removed {numRemovedSalvage} mech pieces.");
-
-            // go through enemyMechs and re-add mech parts based on damage
-            foreach (var unitResult in enemyMechs)
-            {
-                var mechDef = unitResult.mech;
-                var pilotDef = unitResult.pilot;
-
-                // if the mech wasn't destroyed or the pilot wasn't killed then we don't get to salvage
-                // thanks to morph's AdjustedMechSalvage for pointing out the critical component stuff
-                if (!pilotDef.IsIncapacitated && !mechDef.IsDestroyed && !mechDef.Inventory.Any(x => x.Def != null && x.Def.CriticalComponent && x.DamageLevel == ComponentDamageLevel.Destroyed))
-                    continue;
-
-                double bits = 0;
-                Main.HBSLog.Log($"Evaluating {mechDef.Description.Id}");
-
-                // CT is worth 1/2 of the salvage
-                if (!mechDef.IsLocationDestroyed(ChassisLocations.CenterTorso))
-                {
-                    bits += maxMechParts / 2.0;
-                    Main.HBSLog.Log($"+ {maxMechParts / 2.0} CT Intact");
-                }
-
-                // rest of the 6 pieces combined are worth the other 1/2 of the salvage, so 1/12 each
-                foreach (var limbLocation in BODY_LOCATIONS)
-                {
-                    if (!mechDef.IsLocationDestroyed(limbLocation))
-                    {
-                        bits += maxMechParts / 12.0;
-                        Main.HBSLog.Log($"+ {maxMechParts / 12.0} {limbLocation} Intact");
-                    }
-                }
-
-                var mechParts = (int)Math.Floor(bits);
-                Main.HBSLog.Log($"= floor({bits}) = {mechParts}");
-
-                if (mechParts > 0)
-                    instTrav.Method("CreateAndAddMechPart", simGame.Constants, mechDef, mechParts, finalPotentialSalvage).GetValue();
-            }
-        }
-    }
-
-
-    [HarmonyPatch(typeof(SimGameState), "AddMechPart")]
-    public static class SimGameState_AddMechPart_Patch
-    {
-        public static bool Prefix(SimGameState __instance, string id)
-        {
-            __instance.AddItemStat(id, "MECHPART", false);
-
-            // we're in the middle of resolving a contract
-            if (Main.IsResolvingContract)
-            {
-                if (!Main.SalvageFromContract.ContainsKey(id))
-                    Main.SalvageFromContract[id] = 0;
-
-                Main.SalvageFromContract[id]++;
-                return false;
-            }
-
-            Main.TryBuildMechs(__instance, new Dictionary<string, int> { { id, 1 } });
-            return false;
-        }
-    }
-
-
-    [HarmonyPatch(typeof(SimGameState), "ResolveCompleteContract")]
-    public static class SimGameState_ResolveCompleteContract_Patch
-    {
-        public static void Prefix()
-        {
-            Main.IsResolvingContract = true;
-        }
-
-        public static void Postfix(SimGameState __instance)
-        {
-            Main.TryBuildMechs(__instance, Main.SalvageFromContract);
-
-            Main.IsResolvingContract = false;
-            Main.SalvageFromContract.Clear();
-        }
-    }
-
-    // this is to patch the stat display on the event, since it's broken with flatpacked mechs and mech parts
-    [HarmonyPatch(typeof(DataManagerExtensions), "GetStatDescDef")]
-    public static class DataManagerExtensions_GetStatDescDef_Patch
-    {
-        public static bool Prefix(DataManager dataManager, SimGameStat simGameStat, ref SimGameStatDescDef __result)
-        {
-            string text = "SimGameStatDesc_" + simGameStat.name;
-            if (!dataManager.Exists(BattleTechResourceType.SimGameStatDescDef, text))
-            {
-                if (!text.Contains("SimGameStatDesc_Item"))
-                    return true;
-
-                var itemStatDesc = dataManager.SimGameStatDescDefs.Get("SimGameStatDesc_Item");
-                var split = text.Split('.');
-
-                if (text.Contains("MECHPART"))
-                {
-                    var statDescDef = new SimGameStatDescDef();
-                    var mechDef = dataManager.MechDefs.Get(split[2]);
-
-                    if (mechDef == null)
-                        return true;
-
-                    statDescDef.Description.SetName($"{mechDef.Description.UIName} Parts");
-                    __result = statDescDef;
-                    return false;
-                }
-                else if (text.Contains("MechDef"))
-                {
-                    var statDescDef = new SimGameStatDescDef();
-                    var chassisDef = dataManager.ChassisDefs.Get(split[2]);
-
-                    if (chassisDef == null)
-                        return true;
-
-                    statDescDef.Description.SetName($"{chassisDef.Description.UIName}");
-                    __result = statDescDef;
-                    return false;
-                }
-            }
-
-            return true;
-        }
-    }
-
-    //[HarmonyPatch(typeof(ListElementController_SalvageMechPart_NotListView), "RefreshInfoOnWidget")]
-    //public static class ListElementController_SalvageMechPart_NotListView_RefreshInfoOnWidget_Patch
-    //{
-    //    public static void Postfix(ListElementController_SalvageMechPart_NotListView __instance, InventoryItemElement_NotListView theWidget, SimGameState ___simState)
-    //    {
-    //        var defaultMechPartMax = ___simState.Constants.Story.DefaultMechPartMax;
-    //        var thisMechPieces = Main.GetMechPieces(___simState, __instance.mechDef);
-    //        var allMechPieces = Main.GetAllVariantMechPieces(___simState, __instance.mechDef);
-
-    //        if (allMechPieces > thisMechPieces)
-    //            theWidget.mechPartsNumbersText.SetText($"{thisMechPieces} ({allMechPieces}) / {defaultMechPartMax}");
-    //    }
-    //}
-
-
     public static class Main
     {
-        public static ILog HBSLog;
-        public static bool IsResolvingContract = false;
+        internal static ILog HBSLog;
+
+        public static bool IsResolvingContract { get; private set; }
         public static Dictionary<string, int> SalvageFromContract = new Dictionary<string, int>();
 
         private static SimGameEventTracker eventTracker = new SimGameEventTracker();
         private static bool hasInitEventTracker = false;
 
 
+        // ENTRY POINT
+        public static void Init()
+        {
+            var harmony = HarmonyInstance.Create("io.github.mpstark.SalvageOperations");
+            harmony.PatchAll(Assembly.GetExecutingAssembly());
+            HBSLog = Logger.GetLogger("SalvageOperations");
+        }
+
+
+        // CONTACTS
+        public static void ContractStart()
+        {
+            IsResolvingContract = true;
+            SalvageFromContract.Clear();
+        }
+
+        public static void ContractEnd()
+        {
+            IsResolvingContract = false;
+        }
+
+
+        // UTIL
         public static int GetAllVariantMechPieces(SimGameState simGame, MechDef mechDef)
         {
             int mechPieces = 0;
@@ -224,15 +85,13 @@ namespace StarkSalvage
             string text = type.ToString();
             if (text.Contains("."))
             {
-                text = text.Split(new char[]
-                {
-                    '.'
-                })[1];
+                text = text.Split(new char[] { '.' })[1];
             }
             return string.Format("{0}.{1}.{2}", "Item", text, id);
         }
 
 
+        // MEAT
         private static SimGameEventResult[] GetBuildMechEventResult(SimGameState simGame, MechDef mechDef)
         {
             HBSLog.Log($"Generate Event Result for {mechDef.Description.Id}");
@@ -404,7 +263,7 @@ namespace StarkSalvage
                 SimGameEventDef.SimEventType.UNSELECTABLE,
                 EventScope.Company,
                 new DescriptionDef(
-                    "StarkSalvageEventID",
+                    "SalvageOperationsEventID",
                     $"Playing With Salvage",
                     eventString,
                     "uixTxrSpot_YangWorking.png",
@@ -460,15 +319,6 @@ namespace StarkSalvage
                     GenerateMechPopup(simGame, prefabID);
                 }
             }
-        }
-
-
-        public static void Init()
-        {
-            var harmony = HarmonyInstance.Create("io.github.mpstark.StarkSalvage");
-            harmony.PatchAll(Assembly.GetExecutingAssembly());
-
-            HBSLog = Logger.GetLogger("StarkSalvage");
         }
     }
 }

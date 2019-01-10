@@ -7,8 +7,8 @@
     <ProjectGuid>{2AE8F268-C6DC-4EDC-8FDF-26D5D37D5399}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>StarkSalvage</RootNamespace>
-    <AssemblyName>StarkSalvage</AssemblyName>
+    <RootNamespace>SalvageOperations</RootNamespace>
+    <AssemblyName>SalvageOperations</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>false</Deterministic>
@@ -59,7 +59,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Patches.cs" />
+    <Compile Include="Main.cs" />
+    <Compile Include="Patches\Contract.cs" />
+    <Compile Include="Patches\DataManagerExtensions.cs" />
+    <Compile Include="Patches\LCE_SalvageMechPart.cs" />
+    <Compile Include="Patches\SimGameState.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
