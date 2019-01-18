@@ -67,4 +67,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>xcopy $(TargetPath) "D:\Games\GOG Galaxy\Games\BATTLETECH\Mods\SalvageOperations" /Y</PostBuildEvent>
+  </PropertyGroup>
 </Project>

@@ -29,7 +29,7 @@ namespace SalvageOperations
         }
 
 
-        // CONTACTS
+        // CONTRACTS
         public static void ContractStart()
         {
             IsResolvingContract = true;

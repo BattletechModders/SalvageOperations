@@ -58,7 +58,7 @@ namespace SalvageOperations
                     }
                 }
 
-                var mechParts = (int)Math.Floor(bits);
+                var mechParts = (int)Math.Round(bits - 0.25);
                 Main.HBSLog.Log($"= floor({bits}) = {mechParts}");
 
                 if (mechParts > 0)
