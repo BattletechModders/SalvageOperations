@@ -9,8 +9,7 @@ BattleTech mod to revamp how 'Mech salvage is generated and how 'Mechs are assem
 * 'Mechs now drop from 0 pieces all the way up to the `DefaultMechPartMax` set by difficulty
 * Amount dropped depends on the current status of each of the locations on the 'Mech
 * Currently, you get `1/2 * DefaultMechPartMax` for the CT and `1/12 * DefaultMechPartMax` for all other non-head parts
-* Parts are rounded down to the nearest integer
-* Only way to get all of the pieces is to force an eject or to otherwise destroy the head
+* Partial parts are rounded up at .75 and above, down otherwise
 
 ### 'Mech Assembly
 
