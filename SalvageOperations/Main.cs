@@ -213,7 +213,7 @@ namespace SalvageOperations
                     {
                         new SimGameEventResultSet
                         {
-                            Description = new BaseDescriptionDef(variant, variant, $"You tell Yang that you want him to build the {mechDef.Description.UIName} and his eyes light up. \"I can't wait to get started.\"\r\n\r\nHe starts to move behind the pile of scrap, then calls out, \"Oh, and don't forget to submit the work to 'Ready' the 'Mech when you want to get started on the refit.\"", ""),
+                            Description = new BaseDescriptionDef(variant, variant, $"You tell Yang that you want him to build the {mechDef.Description.UIName} and his eyes light up. \"I can't wait to get started.\"\r\n\r\nHe starts to move behind the pile of scrap, then calls out, \"Oh, and don't forget to submit a work order to 'Ready' the 'Mech when you want to get started on the refit.\"", ""),
                             Weight = 100,
                             Results = GetBuildMechEventResult(simGame, mechDef)
                         }
@@ -264,7 +264,7 @@ namespace SalvageOperations
                 EventScope.Company,
                 new DescriptionDef(
                     "SalvageOperationsEventID",
-                    $"Playing With Salvage",
+                    "Salvage Operations",
                     eventString,
                     "uixTxrSpot_YangWorking.png",
                     0, 0, false, "", "", ""),
