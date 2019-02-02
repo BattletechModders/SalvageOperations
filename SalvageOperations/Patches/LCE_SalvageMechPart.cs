@@ -1,7 +1,10 @@
 ﻿using BattleTech;
 using BattleTech.UI;
 
-namespace SalvageOperations
+// ReSharper disable InconsistentNaming
+// ReSharper disable UnusedMember.Global
+
+namespace SalvageOperations.Patches
 {
     // THIS PATCH CRASHES THE GAME AFTER SALVAGE IS CHOSEN FOR SOME REASON
     //[HarmonyPatch(typeof(ListElementController_SalvageMechPart_NotListView), "RefreshInfoOnWidget")]

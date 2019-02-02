@@ -17,7 +17,7 @@ namespace SalvageOperations
         public static Dictionary<string, int> SalvageFromContract = new Dictionary<string, int>();
 
         private static SimGameEventTracker eventTracker = new SimGameEventTracker();
-        private static bool hasInitEventTracker = false;
+        private static bool _hasInitEventTracker;
 
 
         // ENTRY POINT
@@ -142,13 +142,13 @@ namespace SalvageOperations
             }
 
             // actually add the stats that will remove the other mech parts
-            foreach (var otherMechPartsKVP in otherMechParts)
-                stats.Add(new SimGameStat(GetItemStatID(otherMechPartsKVP.Key, "MECHPART"), -otherMechPartsKVP.Value));
+            foreach (var mechID in otherMechParts.Keys)
+                stats.Add(new SimGameStat(GetItemStatID(mechID, "MECHPART"), -otherMechParts[mechID]));
 
             foreach(var stat in stats)
                 HBSLog.Log($"Event Stat {stat.name} {stat.value}");
 
-            return new SimGameEventResult[] { new SimGameEventResult
+            return new[] { new SimGameEventResult
             {
                 Stats = stats.ToArray(),
                 Scope = EventScope.Company,
@@ -209,7 +209,7 @@ namespace SalvageOperations
                 {
                     Description = new BaseDescriptionDef(variant, $"Build the {mechDef.Description.UIName} ({mechPieces[variant]} Parts)", variant, ""),
                     RequirementList = null,
-                    ResultSets = new SimGameEventResultSet[]
+                    ResultSets = new[]
                     {
                         new SimGameEventResultSet
                         {
@@ -226,13 +226,13 @@ namespace SalvageOperations
             {
                 Description = new BaseDescriptionDef("BuildNothing", $"Tell Yang not to build anything right now.", "BuildNothing", ""),
                 RequirementList = null,
-                ResultSets = new SimGameEventResultSet[]
+                ResultSets = new[]
                 {
                     new SimGameEventResultSet
                     {
                         Description = new BaseDescriptionDef("BuildNothing", "BuildNothing", "Yang looks disappointed for a moment, then grins and shrugs, \"Saving these pieces up makes sense, I guess, never know when they might come in handy later on.\"", ""),
                         Weight = 100,
-                        Results = new SimGameEventResult[] { new SimGameEventResult
+                        Results = new[] { new SimGameEventResult
                         {
                             Stats = new SimGameStat[0],
                             Scope = EventScope.Company,
@@ -274,10 +274,10 @@ namespace SalvageOperations
                 options,
                 1);
 
-            if (!hasInitEventTracker)
+            if (!_hasInitEventTracker)
             {
-                eventTracker.Init(new EventScope[] { EventScope.Company }, 0, 0, SimGameEventDef.SimEventType.NORMAL, simGame);
-                hasInitEventTracker = true;
+                eventTracker.Init(new[] { EventScope.Company }, 0, 0, SimGameEventDef.SimEventType.NORMAL, simGame);
+                _hasInitEventTracker = true;
             }
 
             simGame.InterruptQueue.QueueEventPopup(eventDef, EventScope.Company, eventTracker);

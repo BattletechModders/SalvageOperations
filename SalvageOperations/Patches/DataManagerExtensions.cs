@@ -2,7 +2,10 @@
 using BattleTech.Data;
 using Harmony;
 
-namespace SalvageOperations
+// ReSharper disable InconsistentNaming
+// ReSharper disable UnusedMember.Global
+
+namespace SalvageOperations.Patches
 {
     // this is to patch the stat display on the event, since it's broken with flatpacked mechs and mech parts
     [HarmonyPatch(typeof(DataManagerExtensions), "GetStatDescDef")]
@@ -10,39 +13,38 @@ namespace SalvageOperations
     {
         public static bool Prefix(DataManager dataManager, SimGameStat simGameStat, ref SimGameStatDescDef __result)
         {
-            string text = "SimGameStatDesc_" + simGameStat.name;
-            if (!dataManager.Exists(BattleTechResourceType.SimGameStatDescDef, text))
+            var text = "SimGameStatDesc_" + simGameStat.name;
+
+            if (dataManager.Exists(BattleTechResourceType.SimGameStatDescDef, text) || !text.Contains("SimGameStatDesc_Item"))
+                return true;
+
+            var split = text.Split('.');
+            var mechID = split[2];
+
+            if (text.Contains("MECHPART"))
             {
-                if (!text.Contains("SimGameStatDesc_Item"))
+                var statDescDef = new SimGameStatDescDef();
+                var mechDef = dataManager.MechDefs.Get(mechID);
+
+                if (mechDef == null)
                     return true;
 
-                var itemStatDesc = dataManager.SimGameStatDescDefs.Get("SimGameStatDesc_Item");
-                var split = text.Split('.');
+                statDescDef.Description.SetName($"{mechDef.Description.UIName} Parts");
+                __result = statDescDef;
+                return false;
+            }
 
-                if (text.Contains("MECHPART"))
-                {
-                    var statDescDef = new SimGameStatDescDef();
-                    var mechDef = dataManager.MechDefs.Get(split[2]);
+            if (text.Contains("MechDef"))
+            {
+                var statDescDef = new SimGameStatDescDef();
+                var chassisDef = dataManager.ChassisDefs.Get(mechID);
 
-                    if (mechDef == null)
-                        return true;
+                if (chassisDef == null)
+                    return true;
 
-                    statDescDef.Description.SetName($"{mechDef.Description.UIName} Parts");
-                    __result = statDescDef;
-                    return false;
-                }
-                else if (text.Contains("MechDef"))
-                {
-                    var statDescDef = new SimGameStatDescDef();
-                    var chassisDef = dataManager.ChassisDefs.Get(split[2]);
-
-                    if (chassisDef == null)
-                        return true;
-
-                    statDescDef.Description.SetName($"{chassisDef.Description.UIName}");
-                    __result = statDescDef;
-                    return false;
-                }
+                statDescDef.Description.SetName($"{chassisDef.Description.UIName}");
+                __result = statDescDef;
+                return false;
             }
 
             return true;

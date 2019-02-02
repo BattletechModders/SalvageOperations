@@ -1,10 +1,13 @@
-﻿using BattleTech;
-using Harmony;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using BattleTech;
+using Harmony;
 
-namespace SalvageOperations
+// ReSharper disable InconsistentNaming
+// ReSharper disable UnusedMember.Global
+
+namespace SalvageOperations.Patches
 {
     [HarmonyPatch(typeof(Contract), "GenerateSalvage")]
     public static class Contract_GenerateSalvage_Patch

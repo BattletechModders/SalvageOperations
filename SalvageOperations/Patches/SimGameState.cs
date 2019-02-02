@@ -1,8 +1,11 @@
-﻿using BattleTech;
+﻿using System.Collections.Generic;
+using BattleTech;
 using Harmony;
-using System.Collections.Generic;
 
-namespace SalvageOperations
+// ReSharper disable InconsistentNaming
+// ReSharper disable UnusedMember.Global
+
+namespace SalvageOperations.Patches
 {
     [HarmonyPatch(typeof(SimGameState), "AddMechPart")]
     public static class SimGameState_AddMechPart_Patch
