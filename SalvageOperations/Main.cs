@@ -12,6 +12,7 @@ namespace SalvageOperations
     public static class Main
     {
         internal static ILog HBSLog;
+        internal static ModSettings Settings;
 
         public static bool IsResolvingContract { get; private set; }
         public static Dictionary<string, int> SalvageFromContract = new Dictionary<string, int>();
@@ -21,11 +22,12 @@ namespace SalvageOperations
 
 
         // ENTRY POINT
-        public static void Init()
+        public static void Init(string modDir, string settings)
         {
             var harmony = HarmonyInstance.Create("io.github.mpstark.SalvageOperations");
             harmony.PatchAll(Assembly.GetExecutingAssembly());
             HBSLog = Logger.GetLogger("SalvageOperations");
+            Settings = ModSettings.ReadSettings(settings);
         }
 
 

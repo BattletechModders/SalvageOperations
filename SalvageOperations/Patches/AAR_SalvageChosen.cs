@@ -12,7 +12,7 @@ namespace SalvageOperations.Patches
     {
         public static void Postfix(SimGameState ___simState, ref int __result)
         {
-            if (___simState != null)
+            if (Main.Settings.SalvageValueUsesSellPrice && ___simState != null)
                 __result = (int) (__result * ___simState.Constants.Finances.ShopSellModifier);
         }
     }
