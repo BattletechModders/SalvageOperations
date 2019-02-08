@@ -5,5 +5,10 @@
     "Version": "1.0.0",
     "Description": "Changes how mech salvage works.",
     "Author": "mpstark",
-    "Website": "www.github.com/BattleTechModders/SalvageOperations"
+    "Website": "www.github.com/BattleTechModders/SalvageOperations",
+
+    "Settings": {
+        "SalvageValueUsesSellPrice": true,
+        "ReplaceMechSalvageLogic": true
+    }
 }

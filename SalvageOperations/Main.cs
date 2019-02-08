@@ -79,17 +79,16 @@ namespace SalvageOperations
 
         public static string GetItemStatID(string id, string type)
         {
-            return string.Format("{0}.{1}.{2}", "Item", type, id);
+            return $"Item.{type}.{id}";
         }
 
         public static string GetItemStatID(string id, Type type)
         {
-            string text = type.ToString();
+            var text = type.ToString();
             if (text.Contains("."))
-            {
-                text = text.Split(new char[] { '.' })[1];
-            }
-            return string.Format("{0}.{1}.{2}", "Item", text, id);
+                text = text.Split('.')[1];
+
+            return $"Item.{text}.{id}";
         }
 
 
@@ -215,7 +214,7 @@ namespace SalvageOperations
                     {
                         new SimGameEventResultSet
                         {
-                            Description = new BaseDescriptionDef(variant, variant, $"You tell Yang that you want him to build the {mechDef.Description.UIName} and his eyes light up. \"I can't wait to get started.\"\r\n\r\nHe starts to move behind the pile of scrap, then calls out, \"Oh, and don't forget to submit a work order to 'Ready' the 'Mech when you want to get started on the refit.\"", ""),
+                            Description = new BaseDescriptionDef(variant, variant, $"You tell Yang that you want him to build the [[DM.MechDefs[{variant}],{{DM.MechDefs[{variant}].Description.UIName}}]] and his eyes light up. \"I can't wait to get started.\"\r\n\r\nHe starts to move behind the pile of scrap, then calls out, \"Oh, and don't forget to submit a work order to 'Ready' the 'Mech when you want to get started on the refit.\"", ""),
                             Weight = 100,
                             Results = GetBuildMechEventResult(simGame, mechDef)
                         }

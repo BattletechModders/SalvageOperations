@@ -65,7 +65,6 @@
     <Compile Include="ModSettings.cs" />
     <Compile Include="Patches\AAR_SalvageChosen.cs" />
     <Compile Include="Patches\Contract.cs" />
-    <Compile Include="Patches\DataManagerExtensions.cs" />
     <Compile Include="Patches\LCE_SalvageMechPart.cs" />
     <Compile Include="Patches\SimGameState.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

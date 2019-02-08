@@ -6,6 +6,7 @@ namespace SalvageOperations
     internal class ModSettings
     {
         public bool SalvageValueUsesSellPrice = true;
+        public bool ReplaceMechSalvageLogic = true;
 
         public static ModSettings ReadSettings(string json)
         {

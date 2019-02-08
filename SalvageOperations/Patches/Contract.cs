@@ -18,12 +18,11 @@ namespace SalvageOperations.Patches
         {
             var simGame = __instance.BattleTechGame.Simulation;
 
-            if (simGame == null)
+            if (simGame == null || !Main.Settings.ReplaceMechSalvageLogic)
                 return;
 
-            var instTrav = Traverse.Create(__instance);
-
-            var finalPotentialSalvage = instTrav.Field("finalPotentialSalvage").GetValue<List<SalvageDef>>();
+            var instanceTraverse = Traverse.Create(__instance);
+            var finalPotentialSalvage = instanceTraverse.Field("finalPotentialSalvage").GetValue<List<SalvageDef>>();
             var maxMechParts = simGame.Constants.Story.DefaultMechPartMax;
 
             // remove all mech parts
@@ -65,7 +64,7 @@ namespace SalvageOperations.Patches
                 Main.HBSLog.Log($"= floor({bits}) = {mechParts}");
 
                 if (mechParts > 0)
-                    instTrav.Method("CreateAndAddMechPart", simGame.Constants, mechDef, mechParts, finalPotentialSalvage).GetValue();
+                    instanceTraverse.Method("CreateAndAddMechPart", simGame.Constants, mechDef, mechParts, finalPotentialSalvage).GetValue();
             }
         }
     }
