@@ -14,7 +14,7 @@ namespace SalvageOperations.Patches
     {
         private static readonly ChassisLocations[] BODY_LOCATIONS = { ChassisLocations.LeftArm, ChassisLocations.RightArm, ChassisLocations.LeftLeg, ChassisLocations.RightLeg, ChassisLocations.LeftTorso, ChassisLocations.RightTorso };
 
-        public static void Postfix(Contract __instance, List<UnitResult> enemyMechs, List<VehicleDef> enemyVehicles, List<UnitResult> lostUnits, bool logResults = false)
+        public static void Postfix(Contract __instance, List<UnitResult> enemyMechs)
         {
             var simGame = __instance.BattleTechGame.Simulation;
 

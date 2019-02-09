@@ -54,7 +54,7 @@ namespace SalvageOperations.Patches
     [HarmonyPatch(typeof(SimGameState), "BuildSimGameStatsResults")]
     public static class SimGameState_BuildSimGameStatsResults_Patch
     {
-        public static void Postfix(SimGameState __instance, List<ResultDescriptionEntry> __result, SimGameStat[] stats, GameContext context, SimGameStatDescDef.DescriptionTense tense, string prefix)
+        public static void Postfix(List<ResultDescriptionEntry> __result, SimGameStat[] stats, GameContext context, string prefix)
         {
             if (stats.All(stat => !stat.name.StartsWith("Item.MECHPART.") && !stat.name.StartsWith("Item.MechDef.")))
                 return;
