@@ -19,6 +19,7 @@ namespace SalvageOperations
 
         private static SimGameEventTracker eventTracker = new SimGameEventTracker();
         private static bool _hasInitEventTracker;
+        //internal static bool wasBuilt;
 
 
         // ENTRY POINT
@@ -26,8 +27,9 @@ namespace SalvageOperations
         {
             var harmony = HarmonyInstance.Create("io.github.mpstark.SalvageOperations");
             harmony.PatchAll(Assembly.GetExecutingAssembly());
-            HBSLog = Logger.GetLogger("SalvageOperations");
+            HBSLog = HBS.Logging.Logger.GetLogger("SalvageOperations");
             Settings = ModSettings.ReadSettings(settings);
+            Logger.Clear();
         }
 
 
@@ -154,7 +156,7 @@ namespace SalvageOperations
             } };
         }
 
-        private static void GenerateMechPopup(SimGameState simGame, string prefabID)
+        internal static void GenerateMechPopup(SimGameState simGame, string prefabID)
         {
             var mechPieces = new Dictionary<string, int>();
             var variants = GetAllMatchingVariants(simGame.DataManager, prefabID);
@@ -184,7 +186,7 @@ namespace SalvageOperations
 
             // build the result set
             int optionIdx = 0;
-            var options = new SimGameEventOption[Math.Min(4, mechPieces.Count + 1)];
+            var options = new SimGameEventOption[Math.Min(3, mechPieces.Count + 1)];
             foreach (var variantKVP in mechPieces.OrderByDescending(key => key.Value))
             {
                 var variant = variantKVP.Key;
@@ -199,7 +201,7 @@ namespace SalvageOperations
                 var mechDef = simGame.DataManager.MechDefs.Get(variant);
                 options[optionIdx++] = new SimGameEventOption
                 {
-                    Description = new BaseDescriptionDef(variant, $"Build the {mechDef.Description.UIName} ({mechPieces[variant]} Parts)", variant, ""),
+                    Description = new BaseDescriptionDef(variant, $"Build the {mechDef.Description.UIName} ({mechPieces[variant]} Parts", variant, ""),
                     RequirementList = null,
                     ResultSets = new[]
                     {
@@ -212,33 +214,6 @@ namespace SalvageOperations
                     }
                 };
             }
-
-            // add the option to not build anything
-            options[optionIdx] = new SimGameEventOption
-            {
-                Description = new BaseDescriptionDef("BuildNothing", $"Tell Yang not to build anything right now.", "BuildNothing", ""),
-                RequirementList = null,
-                ResultSets = new[]
-                {
-                    new SimGameEventResultSet
-                    {
-                        Description = new BaseDescriptionDef("BuildNothing", "BuildNothing", "Yang looks disappointed for a moment, then grins and shrugs, \"Saving these pieces up makes sense, I guess, never know when they might come in handy later on.\"", ""),
-                        Weight = 100,
-                        Results = new[] { new SimGameEventResult
-                        {
-                            Stats = new SimGameStat[0],
-                            Scope = EventScope.Company,
-                            Actions = new SimGameResultAction[0],
-                            AddedTags = new HBS.Collections.TagSet(),
-                            RemovedTags = new HBS.Collections.TagSet(),
-                            ForceEvents = new SimGameForcedEvent[0],
-                            Requirements = null,
-                            ResultDuration = 0,
-                            TemporaryResult = false
-                        } }
-                    }
-                }
-            };
 
             var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
 
@@ -271,7 +246,6 @@ namespace SalvageOperations
                 eventTracker.Init(new[] { EventScope.Company }, 0, 0, SimGameEventDef.SimEventType.NORMAL, simGame);
                 _hasInitEventTracker = true;
             }
-
             simGame.InterruptQueue.QueueEventPopup(eventDef, EventScope.Company, eventTracker);
         }
 
@@ -280,8 +254,9 @@ namespace SalvageOperations
             HBSLog.Log($"TryBuildMechs {mechPieces.Count} mechIDs");
             var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
             var chassisPieces = new Dictionary<string, int>();
-
-            // setup chassis pieces for the pieces that we recieved
+            
+            
+            // setup chassis pieces for the pieces that we received
             foreach (var mechID in mechPieces.Keys)
             {
                 var mechDef = simGame.DataManager.MechDefs.Get(mechID);
@@ -292,6 +267,7 @@ namespace SalvageOperations
                 HBSLog.Log($"{mechID} has prefabID {mechDef.Chassis.PrefabIdentifier}");
             }
 
+            // 
             // try to build each chassis
             var prefabIDs = chassisPieces.Keys.ToList();
             foreach (var prefabID in prefabIDs)
@@ -307,7 +283,8 @@ namespace SalvageOperations
                 if (chassisPieces[prefabID] >= defaultMechPartMax)
                 {
                     // has enough pieces to build a mech, generate popup
-                    HBSLog.Log($"Generting popup for {prefabID}");
+                    HBSLog.Log($"Generating popup for {prefabID}");
+                    //simGame.AddItemStat("mechdef_vindicator_VND-1R", "MECHPART", false);
                     GenerateMechPopup(simGame, prefabID);
                 }
             }

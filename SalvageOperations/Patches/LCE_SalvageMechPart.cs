@@ -1,5 +1,9 @@
-﻿using BattleTech;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Reflection.Emit;
+using BattleTech;
 using BattleTech.UI;
+using Harmony;
 
 // ReSharper disable InconsistentNaming
 // ReSharper disable UnusedMember.Global
@@ -7,7 +11,7 @@ using BattleTech.UI;
 namespace SalvageOperations.Patches
 {
     // THIS PATCH CRASHES THE GAME AFTER SALVAGE IS CHOSEN FOR SOME REASON
-    //[HarmonyPatch(typeof(ListElementController_SalvageMechPart_NotListView), "RefreshInfoOnWidget")]
+    [HarmonyPatch(typeof(ListElementController_SalvageMechPart_NotListView), "RefreshInfoOnWidget")]
     public static class ListElementController_SalvageMechPart_NotListView_RefreshInfoOnWidget_Patch
     {
         public static void Postfix(ListElementController_SalvageMechPart_NotListView __instance, InventoryItemElement_NotListView theWidget, SimGameState ___simState)
@@ -19,5 +23,6 @@ namespace SalvageOperations.Patches
             if (allMechPieces > thisMechPieces)
                 theWidget.mechPartsNumbersText.SetText($"{thisMechPieces} ({allMechPieces}) / {defaultMechPartMax}");
         }
+
     }
 }
