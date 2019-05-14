@@ -91,6 +91,7 @@ namespace SalvageOperations
             HBSLog.Log($"Generate Event Result for {mechDef.Description.Id}");
 
             var stats = new List<SimGameStat>();
+            var removeItemStat = AccessTools.Method(typeof(SimGameState), "RemoveItemStat", new[] {typeof(string), typeof(string), typeof(bool)});
 
             // adds the flatpacked mech
             stats.Add(new SimGameStat(GetItemStatID(mechDef.Chassis.Description.Id, "MechDef"), 1));
@@ -101,9 +102,15 @@ namespace SalvageOperations
 
             // removes the parts from the mech we're building from inventory
             stats.Add(new SimGameStat(GetItemStatID(mechDef.Description.Id, "MECHPART"), -thisParts));
-            if (!VariantChanges.ContainsKey(mechDef.Description.Id))
-                VariantChanges.Add(mechDef.Description.Id, 0);
-            VariantChanges[mechDef.Description.Id] += thisParts;
+            //for (var i = 0; i < thisParts; i++)
+            //{
+            //    LogDebug($">>> Removing part for {mechDef.Description.Id}");
+            //    removeItemStat.Invoke(simGame, new object[] {mechDef.Description.Id, "MECHPART", false});
+            //}
+
+            //if (!VariantChanges.ContainsKey(mechDef.Description.Id))
+            //    VariantChanges.Add(mechDef.Description.Id, 0);
+            //VariantChanges[mechDef.Description.Id] += thisParts;
 
             // there could still be parts remaining that we need to delete from other variants
             var otherMechParts = new Dictionary<string, int>();
@@ -142,9 +149,15 @@ namespace SalvageOperations
             foreach (var mechID in otherMechParts.Keys)
             {
                 stats.Add(new SimGameStat(GetItemStatID(mechID, "MECHPART"), -otherMechParts[mechID]));
-                if (!VariantChanges.ContainsKey(mechID))
-                    VariantChanges.Add(mechID, 0);
-                VariantChanges[mechID] += otherMechParts[mechID];
+                //for (var i = 0; i < otherMechParts[mechID]; i++)
+                //{
+                //    LogDebug($">>> Removing part for {mechID}");
+                //    removeItemStat.Invoke(simGame, new object[] {mechID, "MECHPART", false});
+                //}
+
+                //if (!VariantChanges.ContainsKey(mechID))
+                //    VariantChanges.Add(mechID, 0);
+                //VariantChanges[mechID] += otherMechParts[mechID];
             }
 
             return new[]
@@ -269,18 +282,18 @@ namespace SalvageOperations
 
                 // TODO FIX THIS SHIT
                 // delay application of buffer for reasons
-                LogDebug($">>> Delayed removal of parts");
-                foreach (var mech in VariantChanges)
-                {
-                    LogDebug($"{mech.Key} - {mech.Value} parts");
-                    SalvageFromOther[mech.Key] -= mech.Value;
-                    var removeItemStat = AccessTools.Method(typeof(SimGameState), "RemoveItemStat", new[] {typeof(string), typeof(string), typeof(bool)});
-                    for (var i = 0; i < mech.Value; i++)
-                    {
-                        LogDebug($"Removing {mech.Key} part");
-                        removeItemStat.Invoke(simGame, new object[] {mech.Key, "MECHPART", false});
-                    }
-                }
+                //LogDebug($">>> Delayed removal of parts");
+                //foreach (var mech in VariantChanges)
+                //{
+                //    LogDebug($"{mech.Key} - {mech.Value} parts");
+                //    SalvageFromOther[mech.Key] -= mech.Value;
+                //    var removeItemStat = AccessTools.Method(typeof(SimGameState), "RemoveItemStat", new[] {typeof(string), typeof(string), typeof(bool)});
+                //    for (var i = 0; i < mech.Value; i++)
+                //    {
+                //        LogDebug($"Removing {mech.Key} part");
+                //        removeItemStat.Invoke(simGame, new object[] {mech.Key, "MECHPART", false});
+                //    }
+                //}
             }
             catch (Exception ex)
             {
