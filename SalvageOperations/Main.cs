@@ -20,11 +20,10 @@ namespace SalvageOperations
         public static Dictionary<string, int> SalvageFromContract = new Dictionary<string, int>();
         public static Dictionary<string, int> SalvageFromOther = new Dictionary<string, int>();
 
+        private static bool _hasInitEventTracker;
         private static SimGameEventTracker eventTracker = new SimGameEventTracker();
         private static Dictionary<string, int> VariantChanges = new Dictionary<string, int>();
-        internal static List<string> OfferedChassis = new List<string>();
         internal static bool ShowBuildPopup = true;
-        private static bool _hasInitEventTracker;
 
         // ENTRY POINT
         public static void Init(string modDir, string settings)
@@ -104,8 +103,7 @@ namespace SalvageOperations
             stats.Add(new SimGameStat(GetItemStatID(mechDef.Description.Id, "MECHPART"), -thisParts));
             if (!VariantChanges.ContainsKey(mechDef.Description.Id))
                 VariantChanges.Add(mechDef.Description.Id, 0);
-            // tODO Move mech to parts reduction area in addmechpart
-            VariantChanges[mechDef.Description.Id]++;
+            VariantChanges[mechDef.Description.Id] += thisParts;
 
             // there could still be parts remaining that we need to delete from other variants
             var otherMechParts = new Dictionary<string, int>();
@@ -146,11 +144,8 @@ namespace SalvageOperations
                 stats.Add(new SimGameStat(GetItemStatID(mechID, "MECHPART"), -otherMechParts[mechID]));
                 if (!VariantChanges.ContainsKey(mechID))
                     VariantChanges.Add(mechID, 0);
-                VariantChanges[mechID]++;
+                VariantChanges[mechID] += otherMechParts[mechID];
             }
-
-            foreach (var stat in stats)
-                HBSLog.Log($"Event Stat {stat.name} {stat.value}");
 
             return new[]
             {
@@ -271,14 +266,21 @@ namespace SalvageOperations
             try
             {
                 simGame.InterruptQueue.QueueEventPopup(eventDef, EventScope.Company, eventTracker);
-                
+
+                // TODO FIX THIS SHIT
                 // delay application of buffer for reasons
+                LogDebug($">>> Delayed removal of parts");
                 foreach (var mech in VariantChanges)
                 {
                     LogDebug($"{mech.Key} - {mech.Value} parts");
                     SalvageFromOther[mech.Key] -= mech.Value;
+                    var removeItemStat = AccessTools.Method(typeof(SimGameState), "RemoveItemStat", new[] {typeof(string), typeof(string), typeof(bool)});
+                    for (var i = 0; i < mech.Value; i++)
+                    {
+                        LogDebug($"Removing {mech.Key} part");
+                        removeItemStat.Invoke(simGame, new object[] {mech.Key, "MECHPART", false});
+                    }
                 }
-
             }
             catch (Exception ex)
             {
@@ -333,15 +335,15 @@ namespace SalvageOperations
                 LogDebug($"\tAll variant parts for {prefabID}: " + chassisPieces[prefabID]);
                 HBSLog.Log($"{prefabID} has {chassisPieces[prefabID]} pieces");
 
-                if (chassisPieces[prefabID] >= defaultMechPartMax)
+                if (chassisPieces[prefabID] >= defaultMechPartMax && ShowBuildPopup)
                 {
                     // has enough pieces to build a mech, generate popup
                     HBSLog.Log($"Generating popup for {prefabID}");
                     LogDebug($">>> Generating popup for {prefabID}");
                     GenerateMechPopup(simGame, prefabID);
-                    LogDebug($"Hiding popup");
-                    LogDebug("Added to OfferedChassis");
-                    OfferedChassis.Add(prefabID);
+                    LogDebug($">>> Hiding popup");
+                    //LogDebug("Added to OfferedChassis");
+                    //OfferedChassis.Add(prefabID);
                     ShowBuildPopup = false;
                     // track which chassis was just offered to avoid offering it again
                 }

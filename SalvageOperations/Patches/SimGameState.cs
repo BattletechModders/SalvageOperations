@@ -2,10 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using BattleTech;
+using BattleTech.Save;
 using BattleTech.StringInterpolation;
 using BattleTech.UI;
 using Harmony;
+using InControl;
 using Localize;
+using UnityEngine;
 using static Logger;
 using static SalvageOperations.Main;
 
@@ -19,14 +22,6 @@ namespace SalvageOperations.Patches
     {
         public static bool Prefix(SimGameState __instance, string id, SimGameInterruptManager ___interruptQueue)
         {
-            var sim = UnityGameInstance.BattleTechGame.Simulation;
-            var mechDef = sim.DataManager.MechDefs
-                .Where(def => def.Value.ChassisID == id.Replace("mechdef", "chassisdef"))
-                .Select(def => def.Value).FirstOrDefault();
-            LogDebug($"Removed {mechDef.Chassis.PrefabIdentifier} from OfferedChassis");
-
-            OfferedChassis.Remove(mechDef.Chassis.PrefabIdentifier);
-
             if (!SalvageFromOther.ContainsKey(id))
                 SalvageFromOther.Add(id, 0);
             SalvageFromOther[id]++;
@@ -39,56 +34,6 @@ namespace SalvageOperations.Patches
 
             TryBuildMechs(__instance, SalvageFromOther, id);
             // this function replaces the function from SimGameState, prefix return false
-            // GET THE NUMBER OF VARIANT PIECES USE IT TO LOOP THROUGH AND REMOVE ENOUGH
-            //   var mechDef = new MechDef(__instance.DataManager.MechDefs.Get(id), __instance.GenerateSimGameUID(), __instance.Constants.Salvage.EquipMechOnSalvage);
-            //   var allVariantMechPieces = Main.GetAllVariantMechPieces(__instance, mechDef);
-            //   var defaultMechPartMax = __instance.Constants.Story.DefaultMechPartMax;
-            //   // plus 1 because we haven't added the part yet
-            //
-            //   // this part will make a variant match possible?
-            //   if (allVariantMechPieces + 1 >= defaultMechPartMax)
-            //   {
-            //       // we'll be able to construct a mech so add the last piece and go ahead
-            //       LogDebug($"Mech {mechDef.Name} (parts: {allVariantMechPieces + 1})");
-            //
-            //       // if this is going to be more than n - fucking adjust
-            //       if (allVariantMechPieces + 1 > defaultMechPartMax)
-            //       {
-            //           var partsRemoved = 0;
-            //           var mechDefs = Main.GetAllMatchingVariants(__instance.DataManager, mechDef);
-            //           while (partsRemoved != defaultMechPartMax)
-            //           {
-            //               LogDebug("\tpartsRemoved: " + partsRemoved);
-            //               // go through all variant pieces and remove to satisfy n
-            //               foreach (var mech in mechDefs)
-            //               {
-            //                   // we have this many pieces of this variant, clamped
-            //                   var variantParts = __instance.GetItemCount(mech.ChassisID.Replace("chassisdef", "mechdef"), "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
-            //                   var partCount = Math.Min(defaultMechPartMax, variantParts);
-            //                   LogDebug($"\t{mech.ChassisID} ({partCount})");
-            //
-            //                   // only loop to n (MaxParts)
-            //                   while (partCount != 0)
-            //                   {
-            //                       try
-            //                       {
-            //                           LogDebug($"\t\t-");
-            //                           var removeItemStat = AccessTools.Method(typeof(SimGameState), "RemoveItemStat", new[] {typeof(string), typeof(string), typeof(bool)});
-            //                           removeItemStat.Invoke(__instance, new object[] {mech.ChassisID, "MECHPART", false});
-            //                           partsRemoved++;
-            //                           partCount--;
-            //                       }
-            //                       catch (Exception ex)
-            //                       {
-            //                           Error(ex);
-            //                       }
-            //                   }
-            //
-            //                   // escape foreach before moving to next mech incorrectly?
-            //                   if (partsRemoved == defaultMechPartMax) break;
-            //               }
-            //           }
-            //
             //           //__instance.AddItemStat(id, "MECHPART", false);
             //
             //           LogDebug("Done removing variant parts");
@@ -164,7 +109,136 @@ namespace SalvageOperations.Patches
             return false;
         }
     }
-    
+
+    [HarmonyPatch(typeof(SimGameState), "Update")]
+    public class SimGameStateUpdate_Patch
+    {
+        public static void Postfix()
+        {
+            var hotkeyY = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.Y);
+            if (!hotkeyY) return;
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            ShowBuildPopup = true;
+            var inventorySalvage = new Dictionary<string, int>(SalvageFromOther);
+            var inventory = sim.GetAllInventoryMechDefs();
+            foreach (var item in inventory)
+            {
+                var id = item.Description.Id.Replace("chassisdef", "mechdef");
+                var itemCount = sim.GetItemCount(id, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
+                if (!inventorySalvage.ContainsKey(id))
+                    inventorySalvage.Add(id, itemCount);
+                else
+                    inventorySalvage[id] += itemCount;
+                LogDebug($">>> Debug: {id} {itemCount} current parts");
+            }
+
+            //                if (bar.Description.Id
+            //LogDebug($">>> Debug: {bar.Description.Id}");
+            //LogDebug($">>> Debug:  global at {SalvageFromOther.Count}");
+            //LogDebug($">>> Debug:  inventorySalvage at {inventorySalvage.Count}");
+            //var newSalvageDictionary = new Dictionary<string, int>();
+
+            //foreach (var kvp in SalvageFromOther)
+            //{
+            //    if (inventorySalvage.Keys.Contains(kvp.Key))
+            //    {
+            //        // sum inventory with global
+            //        LogDebug("Matching keys, summing " + kvp.Key + " (" + kvp.Value + ")");
+            //
+            //        try
+            //        {
+            //            newSalvageDictionary.Add(kvp.Key, kvp.Value + inventorySalvage[kvp.Key]);
+            //        }
+            //        catch (Exception ex)
+            //        {
+            //            Error(ex);
+            //        }
+            //    }
+            //    else
+            //    {
+            //        try
+            //        {
+            //            newSalvageDictionary.Add(kvp.Key, kvp.Value);
+            //        }
+            //        catch (Exception ex)
+            //        {
+            //            Error(ex);
+            //        }
+            //    }
+            //}
+
+            //foreach (var kvp in inventorySalvage)
+            //{
+            //    if (SalvageFromOther.Keys.Contains(kvp.Key))
+            //    {
+            //        LogDebug($"Exists in global too ({kvp.Key}) - ({kvp.Value}) parts");
+            //        LogDebug($"Global has {SalvageFromOther[kvp.Key]} parts");
+            //    }
+            //
+            //    if (!newSalvageDictionary.ContainsKey(kvp.Key))
+            //    {
+            //        try
+            //        {
+            //            newSalvageDictionary.Add(kvp.Key, 0);
+            //            newSalvageDictionary.Add(kvp.Key, kvp.Value + SalvageFromContract[kvp.Key]);
+            //        }
+            //        catch (Exception ex)
+            //        {
+            //            Error(ex);
+            //        }
+            //    }
+            //
+            //    else
+            //    {
+            //        LogDebug("Doesn't exist, adding " + kvp.Key);
+            //        try
+            //        {
+            //            newSalvageDictionary.Add(kvp.Key, kvp.Value);
+            //        }
+            //        catch (Exception ex)
+            //        {
+            //            Error(ex);
+            //        }
+            //    }
+            //}
+
+            //try
+            //{
+            //    inventorySalvage = inventorySalvage.Concat(SalvageFromOther).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            //}
+            //catch (Exception ex)
+            //{
+            //    Error(ex);
+            //}
+
+            LogDebug($">>> Debug:  inventorySalvage at {inventorySalvage.Count}");
+            TryBuildMechs(sim, inventorySalvage, null);
+        }
+    }
+
+//TODO
+//[HarmonyPatch(typeof(MechBayMechStorageWidget), "OnButtonClicked")]
+//public class MechBayMechStorageWidget_OnButtonClicked_Patch
+//{
+//    public static bool Prefix()
+//    {
+//        if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+//        {
+//            var sim = UnityGameInstance.BattleTechGame.Simulation;
+//            ShowBuildPopup = true;
+//            // add existing mechparts to SalvageFromOther
+//            var mechInventory = sim.GetAllInventoryMechDefs();
+//            foreach (var foo in mechInventory)
+//            {
+//                LogDebug($">>> Debug: {foo.PrefabIdentifier}");
+//            }
+//            TryBuildMechs(UnityGameInstance.BattleTechGame.Simulation, SalvageFromOther, null);
+//            return false;
+//        }
+//        return true;
+//    }
+//}
+
     [HarmonyPatch(typeof(SimGameInterruptManager), "QueueEventPopup")]
     public class PatchPopup
     {
@@ -179,16 +253,6 @@ namespace SalvageOperations.Patches
         }
     }
 
-    [HarmonyPatch(typeof(SimGameState), "OnEventDismissed")]
-    public class TestPatch
-    {
-        public static void Prefix(SimGameInterruptManager.EventPopupEntry entry)
-        {
-            LogDebug("Event dismissed");
-            ShowBuildPopup = true;
-        }
-    }
-
     [HarmonyPatch(typeof(SimGameState), "ResolveCompleteContract")]
     public static class SimGameState_ResolveCompleteContract_Patch
     {
@@ -199,18 +263,9 @@ namespace SalvageOperations.Patches
 
         public static void Postfix(SimGameState __instance)
         {
+            ShowBuildPopup = true;
             TryBuildMechs(__instance, SalvageFromContract, null);
             ContractEnd();
-        }
-    }
-
-    [HarmonyPatch(typeof(SimGameState), "Rehydrate")]
-    public class SimGameState_Rehydrate_Patch
-    {
-        public static void Postfix()
-        {
-            SalvageFromOther.Clear();
-            ShowBuildPopup = true;
         }
     }
 
