@@ -182,7 +182,7 @@ namespace SalvageOperations.Patches
     [HarmonyPatch(typeof(SimGameState), "OnEventDismissed")]
     public class TestPatch
     {
-        public static void OnEventDismissed(SimGameInterruptManager.EventPopupEntry entry)
+        public static void Prefix(SimGameInterruptManager.EventPopupEntry entry)
         {
             LogDebug("Event dismissed");
             ShowBuildPopup = true;

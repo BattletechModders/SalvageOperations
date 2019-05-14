@@ -333,16 +333,15 @@ namespace SalvageOperations
                 LogDebug($"\tAll variant parts for {prefabID}: " + chassisPieces[prefabID]);
                 HBSLog.Log($"{prefabID} has {chassisPieces[prefabID]} pieces");
 
-                if (chassisPieces[prefabID] >= defaultMechPartMax &&
-                    ShowBuildPopup)
+                if (chassisPieces[prefabID] >= defaultMechPartMax)
                 {
                     // has enough pieces to build a mech, generate popup
                     HBSLog.Log($"Generating popup for {prefabID}");
                     LogDebug($">>> Generating popup for {prefabID}");
-                    //LogDebug("Added to OfferedChassis");
-                    //OfferedChassis.Add(prefabID);
                     GenerateMechPopup(simGame, prefabID);
                     LogDebug($"Hiding popup");
+                    LogDebug("Added to OfferedChassis");
+                    OfferedChassis.Add(prefabID);
                     ShowBuildPopup = false;
                     // track which chassis was just offered to avoid offering it again
                 }
