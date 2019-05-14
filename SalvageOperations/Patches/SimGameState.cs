@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using BattleTech;
 using BattleTech.StringInterpolation;
@@ -18,18 +19,23 @@ namespace SalvageOperations.Patches
     {
         public static bool Prefix(SimGameState __instance, string id, SimGameInterruptManager ___interruptQueue)
         {
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            var mechDef = sim.DataManager.MechDefs
+                .Where(def => def.Value.ChassisID == id.Replace("mechdef", "chassisdef"))
+                .Select(def => def.Value).FirstOrDefault();
+            LogDebug($"Removed {mechDef.Chassis.PrefabIdentifier} from OfferedChassis");
+
+            OfferedChassis.Remove(mechDef.Chassis.PrefabIdentifier);
+
             if (!SalvageFromOther.ContainsKey(id))
                 SalvageFromOther.Add(id, 0);
             SalvageFromOther[id]++;
 
-            LogDebug($"--------- {id} ----------");
+            LogDebug($"--------- {id} ----------\nSALVAGE\n--------");
             foreach (var kvp in SalvageFromOther)
             {
                 LogDebug($"{kvp.Key}: {kvp.Value}");
             }
-
-            // PASSING THE GLOBAL IS HAVING ISSUES
-            // it's repeating earlier collected salvage                                    
 
             TryBuildMechs(__instance, SalvageFromOther, id);
             // this function replaces the function from SimGameState, prefix return false
@@ -158,6 +164,30 @@ namespace SalvageOperations.Patches
             return false;
         }
     }
+    
+    [HarmonyPatch(typeof(SimGameInterruptManager), "QueueEventPopup")]
+    public class PatchPopup
+    {
+        public static bool Prefix(SimGameInterruptManager __instance, SimGameEventDef evt)
+        {
+            if (evt.Description.Name == "Salvage Operations")
+            {
+                return ShowBuildPopup;
+            }
+
+            return true;
+        }
+    }
+
+    [HarmonyPatch(typeof(SimGameState), "OnEventDismissed")]
+    public class TestPatch
+    {
+        public static void OnEventDismissed(SimGameInterruptManager.EventPopupEntry entry)
+        {
+            LogDebug("Event dismissed");
+            ShowBuildPopup = true;
+        }
+    }
 
     [HarmonyPatch(typeof(SimGameState), "ResolveCompleteContract")]
     public static class SimGameState_ResolveCompleteContract_Patch
@@ -180,6 +210,7 @@ namespace SalvageOperations.Patches
         public static void Postfix()
         {
             SalvageFromOther.Clear();
+            ShowBuildPopup = true;
         }
     }
 
