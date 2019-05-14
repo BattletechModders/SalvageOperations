@@ -31,7 +31,7 @@ namespace SalvageOperations.Patches
             // PASSING THE GLOBAL IS HAVING ISSUES
             // it's repeating earlier collected salvage                                    
 
-            TryBuildMechs(__instance, SalvageFromOther);
+            TryBuildMechs(__instance, SalvageFromOther, id);
             // this function replaces the function from SimGameState, prefix return false
             // GET THE NUMBER OF VARIANT PIECES USE IT TO LOOP THROUGH AND REMOVE ENOUGH
             //   var mechDef = new MechDef(__instance.DataManager.MechDefs.Get(id), __instance.GenerateSimGameUID(), __instance.Constants.Salvage.EquipMechOnSalvage);
@@ -169,7 +169,7 @@ namespace SalvageOperations.Patches
 
         public static void Postfix(SimGameState __instance)
         {
-            TryBuildMechs(__instance, SalvageFromContract);
+            TryBuildMechs(__instance, SalvageFromContract, null);
             ContractEnd();
         }
     }

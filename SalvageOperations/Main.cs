@@ -31,7 +31,7 @@ namespace SalvageOperations
             harmony.PatchAll(Assembly.GetExecutingAssembly());
             HBSLog = HBS.Logging.Logger.GetLogger("SalvageOperations");
             Settings = ModSettings.ReadSettings(settings);
-            Logger.Clear();
+            Clear();
         }
 
         // CONTRACTS
@@ -102,10 +102,10 @@ namespace SalvageOperations
             stats.Add(new SimGameStat(GetItemStatID(mechDef.Description.Id, "MECHPART"), -thisParts));
 
             SalvageFromOther[mechDef.Description.Id] -= thisParts;
-            Logger.LogDebug($">>> Removed {thisParts}");
+            LogDebug($">>> Removed {thisParts}");
             foreach (var kvp in SalvageFromOther)
             {
-                Logger.LogDebug($"{kvp.Key}: {kvp.Value}");
+                LogDebug($"{kvp.Key}: {kvp.Value}");
             }
 
             // there could still be parts remaining that we need to delete from other variants
@@ -159,8 +159,8 @@ namespace SalvageOperations
                     Stats = stats.ToArray(),
                     Scope = EventScope.Company,
                     Actions = new SimGameResultAction[0],
-                    AddedTags = new HBS.Collections.TagSet(),
-                    RemovedTags = new HBS.Collections.TagSet(),
+                    AddedTags = new TagSet(),
+                    RemovedTags = new TagSet(),
                     ForceEvents = new SimGameForcedEvent[0],
                     Requirements = null,
                     ResultDuration = 0,
@@ -212,7 +212,7 @@ namespace SalvageOperations
 
                 var mechDef = simGame.DataManager.MechDefs.Get(variant);
 
-                Logger.LogDebug($"mechDef: {mechDef.Description.UIName}");
+                LogDebug($"mechDef: {mechDef.Description.UIName}");
                 options[optionIdx++] = new SimGameEventOption
                 {
                     Description = new BaseDescriptionDef(variant, $"Build the {mechDef.Description.UIName} ({mechPieces[variant]} Parts)", variant, ""),
@@ -243,7 +243,7 @@ namespace SalvageOperations
 
             foreach (var option in options)
             {
-                Logger.LogDebug($"option: {option.Description.Name}");
+                LogDebug($"option: {option.Description.Name}");
             }
 
             // build the event itself
@@ -275,24 +275,27 @@ namespace SalvageOperations
             }
             catch (Exception ex)
             {
-                Logger.Error(ex);
+                Error(ex);
             }
         }
 
         public static void TryBuildMechs(SimGameState simGame,
-            Dictionary<string, int> mechPieces)
+            Dictionary<string, int> mechPieces, string id)
         {
             HBSLog.Log($"TryBuildMechs {mechPieces.Count} mechIDs");
             var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
             var chassisPieces = new Dictionary<string, int>();
 
             // don't add the piece unless it's actually new - how TODO
+            if (id != null)
+            {
+                LogDebug("\tAdding part: " + id);
+                simGame.AddItemStat(id, "MECHPART", false);
+            }
 
             // loop by number of different mechIDs
             foreach (var part in mechPieces)
             {
-                simGame.AddItemStat(part.Key, "MECHPART", false);
-
                 // setup chassis pieces for the pieces that we received
                 foreach (var mechID in mechPieces.Keys)
                 {
@@ -304,32 +307,37 @@ namespace SalvageOperations
                         $"{mechID} has prefabID {mechDef.Chassis.PrefabIdentifier}");
                 }
 
-                // add part, try to build each prefab base
-                Logger.LogDebug("\tAdding part: " + part.Key);
-
-                // loop by prefab base
+                // try to build each prefab base
                 var prefabIDs = chassisPieces.Keys.ToList();
                 foreach (var prefabID in prefabIDs)
                 {
+                    chassisPieces[prefabID] = 0;
                     // accumulate chassis pieces that we already have
                     var matchingMechDefs = GetAllMatchingVariants(simGame.DataManager, prefabID);
-                    foreach (var mech in matchingMechDefs)
-                    {
-                        LogDebug($"Matching variant {mech.Description.Id}");
-                    }
-                    
+
                     //Logger.LogDebug($"\tprefabID: {prefabID}, (variants: {matchingMechDefs.Count()})");
                     foreach (var mechDef in matchingMechDefs)
+                    {
+                        LogDebug($"{mechDef.Description.Id} GetMechPieces: {GetMechPieces(simGame, mechDef)}");
                         chassisPieces[prefabID] += GetMechPieces(simGame, mechDef);
+                    }
 
-                    Logger.LogDebug("\tAll variant parts: " + chassisPieces[prefabID]);
+                    LogDebug($"\tAll variant parts for {prefabID}: " + chassisPieces[prefabID]);
                     HBSLog.Log($"{prefabID} has {chassisPieces[prefabID]} pieces");
 
+                    if (chassisPieces.Values.Any(x=> x>= defaultMechPartMax))
+                    {
+                        foreach (var foo in chassisPieces)
+                        {
+                            LogDebug(foo.Key);
+                        }
+                    }
+                    
                     if (chassisPieces[prefabID] >= defaultMechPartMax)
                     {
                         // has enough pieces to build a mech, generate popup
                         HBSLog.Log($"Generating popup for {prefabID}");
-                        Logger.LogDebug($"[[[Generating popup for {prefabID}]]]");
+                        LogDebug($"[[[Generating popup for {prefabID}]]]");
                         GenerateMechPopup(simGame, prefabID);
                     }
                 }
