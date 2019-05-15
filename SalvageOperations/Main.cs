@@ -242,31 +242,31 @@ namespace SalvageOperations
             }
 
             // add the option to not build anything
-            //options[optionIdx] = new SimGameEventOption
-            //{
-            //    Description = new BaseDescriptionDef("BuildNothing", $"Tell Yang not to build anything right now.", "BuildNothing", ""),
-            //    RequirementList = null,
-            //    ResultSets = new[]
-            //    {
-            //        new SimGameEventResultSet
-            //        {
-            //            Description = new BaseDescriptionDef("BuildNothing", "BuildNothing", "Yang looks disappointed for a moment, then grins and shrugs, \"Saving these pieces up makes sense, I guess, never know when they might come in handy later on.\"", ""),
-            //            Weight = 100,
-            //            Results = new[] { new SimGameEventResult
-            //            {
-            //                Stats = new SimGameStat[0],
-            //                Scope = EventScope.Company,
-            //                Actions = new SimGameResultAction[0],
-            //                AddedTags = new HBS.Collections.TagSet(),
-            //                RemovedTags = new HBS.Collections.TagSet(),
-            //                ForceEvents = new SimGameForcedEvent[0],
-            //                Requirements = null,
-            //                ResultDuration = 0,
-            //                TemporaryResult = false
-            //            } }
-            //        }
-            //    }
-            //};
+            options[optionIdx] = new SimGameEventOption
+            {
+                Description = new BaseDescriptionDef("BuildNothing", $"Tell Yang not to build anything right now.", "BuildNothing", ""),
+                RequirementList = null,
+                ResultSets = new[]
+                {
+                    new SimGameEventResultSet
+                    {
+                        Description = new BaseDescriptionDef("BuildNothing", "BuildNothing", "Yang looks disappointed for a moment, then grins and shrugs, \"Saving these pieces up makes sense, I guess, never know when they might come in handy later on.\"", ""),
+                        Weight = 100,
+                        Results = new[] { new SimGameEventResult
+                        {
+                            Stats = new SimGameStat[0],
+                            Scope = EventScope.Company,
+                            Actions = new SimGameResultAction[0],
+                            AddedTags = new HBS.Collections.TagSet(),
+                            RemovedTags = new HBS.Collections.TagSet(),
+                            ForceEvents = new SimGameForcedEvent[0],
+                            Requirements = null,
+                            ResultDuration = 0,
+                            TemporaryResult = false
+                        } }
+                    }
+                }
+            };
 
             // get rid of null options that throw on popup
             options = options.Where(option => option != null).ToArray();
