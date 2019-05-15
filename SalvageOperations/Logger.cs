@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using SalvageOperations;
 
 public static class Logger
 {
@@ -19,7 +20,7 @@ public static class Logger
 
     public static void LogDebug(string line)
     {
-        //if (!RandomCampaignStart.ModSettings.Debug) return;
+        if (!Main.Settings.Debug) return;
         using (var writer = new StreamWriter(LogFilePath, true))
         {
             writer.WriteLine(line);
@@ -36,7 +37,7 @@ public static class Logger
 
     public static void Clear()
     {
-        //if (!RandomCampaignStart.ModSettings.Debug) return;
+        if (!Main.Settings.Debug) return;
         using (var writer = new StreamWriter(LogFilePath, false))
         {
             writer.WriteLine($"{DateTime.Now.ToLongTimeString()} SalvageOperations Init");

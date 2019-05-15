@@ -2,13 +2,14 @@
     "Name": "SalvageOperations",
     "DLL": "SalvageOperations.dll",
 
-    "Version": "1.0.0",
+    "Version": "1.1.0",
     "Description": "Changes how mech salvage works.",
-    "Author": "mpstark",
+    "Author": "mpstark, modified by gnivler and don Zappo",
     "Website": "www.github.com/BattleTechModders/SalvageOperations",
 
     "Settings": {
         "SalvageValueUsesSellPrice": true,
-        "ReplaceMechSalvageLogic": true
+        "ReplaceMechSalvageLogic": true,
+        "Debug": false,
     }
 }

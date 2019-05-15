@@ -7,7 +7,8 @@ namespace SalvageOperations
     {
         public bool SalvageValueUsesSellPrice = true;
         public bool ReplaceMechSalvageLogic = true;
-
+        public bool Debug = false;
+        
         public static ModSettings ReadSettings(string json)
         {
             try
