@@ -11,7 +11,7 @@ namespace SalvageOperations.Patches
     {
         public static bool Prefix()
         {
-            // if Storage is shift-clicked, force assembly check
+            // if Storage is shift-clicked, force assembly checking
             if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
             {
                 var sim = UnityGameInstance.BattleTechGame.Simulation;

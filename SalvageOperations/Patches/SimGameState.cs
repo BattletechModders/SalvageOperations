@@ -5,12 +5,40 @@ using BattleTech.StringInterpolation;
 using BattleTech.UI;
 using Harmony;
 using Localize;
+using UnityEngine;
 
 // ReSharper disable InconsistentNaming
 // ReSharper disable UnusedMember.Global
 
 namespace SalvageOperations.Patches
 {
+    [HarmonyPatch(typeof(SimGameState), "Update")]
+    public class SimGameState_Update_Patch
+    {
+        public static void Postfix()
+        {
+            var hotkey = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.A);
+            if (hotkey)
+            {
+                var sim = UnityGameInstance.BattleTechGame.Simulation;
+                Main.ShowBuildPopup = true;
+                var inventorySalvage = new Dictionary<string, int>(Main.Salvage);
+                var inventory = sim.GetAllInventoryMechDefs();
+                foreach (var item in inventory)
+                {
+                    var id = item.Description.Id.Replace("chassisdef", "mechdef");
+                    var itemCount = sim.GetItemCount(id, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
+                    if (!inventorySalvage.ContainsKey(id))
+                        inventorySalvage.Add(id, itemCount);
+                    else
+                        inventorySalvage[id] += itemCount;
+                }
+
+                Main.TryBuildMechs(sim, inventorySalvage, null);
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(SimGameState), "AddMechPart")]
     public static class SimGameState_AddMechPart_Patch
     {
