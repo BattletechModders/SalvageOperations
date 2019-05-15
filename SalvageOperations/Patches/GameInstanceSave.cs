@@ -4,27 +4,27 @@ using Harmony;
 
 namespace SalvageOperations.Patches
 {
-    //[HarmonyPatch(typeof(GameInstanceSave), MethodType.Constructor)]
-    public class GameInstanceSave_Ctor_Patch
+    [HarmonyPatch(typeof(GameInstanceSave), "PreSerialization")]
+    public class GameInstanceSave_PreSerialization_Patch
     {
         public static void Prefix(GameInstanceSave __instance)
         {
-            //if (__instance.SaveReason == SaveReason.SIM_GAME_EVENT_RESOLVED)
-            //{
-                Logger.LogDebug(">>> Allowing popup");
+            if (__instance.SaveReason == SaveReason.SIM_GAME_EVENT_RESOLVED)
+            {
+                Logger.LogDebug(">>> Allowing build popup");
                 Main.ShowBuildPopup = true;
-            //}
+            }
         }
     }
-    
+
+    // maybe not needed TODO check it out
     [HarmonyPatch(typeof(GameInstanceSave), "PostDeserialization")]
-    public class GameInstanceSaveHydrate_Patch
+    public class GameInstanceSave_PostDeserialization_Patch
     {
         public static void Postfix()
         {
-            Main.SalvageFromOther.Clear();
+            Main.Salvage.Clear();
             Main.ShowBuildPopup = true;
-            Logger.LogDebug("Loaded - SalvageFromOther cleared");
         }
     }
 }

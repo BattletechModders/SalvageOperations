@@ -1,16 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using BattleTech;
-using BattleTech.Save;
 using BattleTech.StringInterpolation;
 using BattleTech.UI;
 using Harmony;
-using InControl;
 using Localize;
-using UnityEngine;
-using static Logger;
-using static SalvageOperations.Main;
 
 // ReSharper disable InconsistentNaming
 // ReSharper disable UnusedMember.Global
@@ -22,81 +16,40 @@ namespace SalvageOperations.Patches
     {
         public static bool Prefix(SimGameState __instance, string id, SimGameInterruptManager ___interruptQueue)
         {
-            // buffer the incoming salvage to avoid zombies
-            if (!SalvageFromOther.ContainsKey(id))
-                SalvageFromOther.Add(id, 0);
-            SalvageFromOther[id]++;
-
-            LogDebug($"--------- {id} ----------\nSALVAGE\n--------");
-            foreach (var kvp in SalvageFromOther)
+            if (Main.IsResolvingContract)
             {
-                LogDebug($"{kvp.Key}: {kvp.Value}");
+                if (!Main.SalvageFromContract.ContainsKey(id))
+                    Main.SalvageFromContract[id] = 0;
+
+                Main.SalvageFromContract[id]++;
+                return false;
             }
 
-            TryBuildMechs(__instance, SalvageFromOther, id);
+            // buffer the incoming salvage to avoid zombies (Problem One)
+            if (!Main.Salvage.ContainsKey(id))
+                Main.Salvage.Add(id, 0);
+            Main.Salvage[id]++;
+
+            Logger.LogDebug($"--------- {id} ----------\nSALVAGE\n--------");
+            foreach (var kvp in Main.Salvage)
+            {
+                Logger.LogDebug($"{kvp.Key}: {kvp.Value}");
+            }
+
+            Main.TryBuildMechs(__instance, Main.Salvage, id);
             return false;
         }
     }
 
-    // hotkey to force checking for assembly options, necessary because Problem One
-    [HarmonyPatch(typeof(SimGameState), "Update")]
-    public class SimGameStateUpdate_Patch
-    {
-        public static void Postfix()
-        {
-            var hotkeyY = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.Y);
-            if (!hotkeyY) return;
-            var sim = UnityGameInstance.BattleTechGame.Simulation;
-            ShowBuildPopup = true;
-            var inventorySalvage = new Dictionary<string, int>(SalvageFromOther);
-            var inventory = sim.GetAllInventoryMechDefs();
-            foreach (var item in inventory)
-            {
-                var id = item.Description.Id.Replace("chassisdef", "mechdef");
-                var itemCount = sim.GetItemCount(id, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
-                if (!inventorySalvage.ContainsKey(id))
-                    inventorySalvage.Add(id, itemCount);
-                else
-                    inventorySalvage[id] += itemCount;
-            }
-            
-            TryBuildMechs(sim, inventorySalvage, null);
-        }
-    }
-
-//TODO
-//[HarmonyPatch(typeof(MechBayMechStorageWidget), "OnButtonClicked")]
-//public class MechBayMechStorageWidget_OnButtonClicked_Patch
-//{
-//    public static bool Prefix()
-//    {
-//        if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
-//        {
-//            var sim = UnityGameInstance.BattleTechGame.Simulation;
-//            ShowBuildPopup = true;
-//            // add existing mechparts to SalvageFromOther
-//            var mechInventory = sim.GetAllInventoryMechDefs();
-//            foreach (var foo in mechInventory)
-//            {
-//                LogDebug($">>> Debug: {foo.PrefabIdentifier}");
-//            }
-//            TryBuildMechs(UnityGameInstance.BattleTechGame.Simulation, SalvageFromOther, null);
-//            return false;
-//        }
-//        return true;
-//    }
-//}
-
-
-    // prevent the popup until we've set it back to True with SimGameState hotkey
+    // prevent the popup until we've set it back to True with mech shift-click on Storage
     [HarmonyPatch(typeof(SimGameInterruptManager), "QueueEventPopup")]
-    public class PatchPopup
+    public class SimGameInterruptManager_QueueEventPopup_Patch
     {
         public static bool Prefix(SimGameInterruptManager __instance, SimGameEventDef evt)
         {
             if (evt.Description.Name == "Salvage Operations")
             {
-                return ShowBuildPopup;
+                return Main.ShowBuildPopup;
             }
 
             return true;
@@ -108,14 +61,14 @@ namespace SalvageOperations.Patches
     {
         public static void Prefix()
         {
-            ContractStart();
+            Main.ContractStart();
         }
 
         public static void Postfix(SimGameState __instance)
         {
-            ShowBuildPopup = true;
-            TryBuildMechs(__instance, SalvageFromContract, null);
-            ContractEnd();
+            Main.ShowBuildPopup = true;
+            Main.TryBuildMechs(__instance, Main.SalvageFromContract, null);
+            Main.ContractEnd();
         }
     }
 
