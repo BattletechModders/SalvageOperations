@@ -12,6 +12,7 @@ using UnityEngine;
 
 namespace SalvageOperations.Patches
 {
+    // trigger hotkey
     [HarmonyPatch(typeof(SimGameState), "Update")]
     public class SimGameState_Update_Patch
     {
@@ -39,6 +40,7 @@ namespace SalvageOperations.Patches
         }
     }
 
+    // where the magic starts
     [HarmonyPatch(typeof(SimGameState), "AddMechPart")]
     public static class SimGameState_AddMechPart_Patch
     {
@@ -87,9 +89,10 @@ namespace SalvageOperations.Patches
     [HarmonyPatch(typeof(SimGameState), "ResolveCompleteContract")]
     public static class SimGameState_ResolveCompleteContract_Patch
     {
-        public static void Prefix()
+        public static void Prefix(SimGameState __instance)
         {
             Main.ContractStart();
+            __instance.CompanyTags.Add("SO_Salvaging");
         }
 
         public static void Postfix(SimGameState __instance)
@@ -125,11 +128,13 @@ namespace SalvageOperations.Patches
             {
                 if (!stat.name.StartsWith("Item.MECHPART.") && !stat.name.StartsWith("Item.MechDef."))
                     continue;
+
                 var text = "";
                 var split = stat.name.Split('.');
                 var type = split[1];
                 var mechID = split[2];
                 var num = int.Parse(stat.value);
+
                 switch (type)
                 {
                     case "MechDef":

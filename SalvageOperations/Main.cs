@@ -22,7 +22,6 @@ namespace SalvageOperations
 
         private static bool _hasInitEventTracker;
         private static SimGameEventTracker eventTracker = new SimGameEventTracker();
-        private static Dictionary<string, int> VariantChanges = new Dictionary<string, int>();
         internal static bool ShowBuildPopup = true;
 
         // ENTRY POINT
@@ -91,6 +90,7 @@ namespace SalvageOperations
             HBSLog.Log($"Generate Event Result for {mechDef.Description.Id}");
 
             var stats = new List<SimGameStat>();
+
             // adds the flatpacked mech
             stats.Add(new SimGameStat(GetItemStatID(mechDef.Chassis.Description.Id, "MechDef"), 1));
             var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
@@ -149,6 +149,7 @@ namespace SalvageOperations
 
                             numPartsRemaining--;
                             partsRemoved++;
+
                             if (numPartsRemaining <= 0)
                                 break;
                         }
@@ -172,8 +173,8 @@ namespace SalvageOperations
                     Stats = stats.ToArray(),
                     Scope = EventScope.Company,
                     Actions = new SimGameResultAction[0],
-                    AddedTags = new TagSet(),
-                    RemovedTags = new TagSet(),
+                    AddedTags = new HBS.Collections.TagSet(),
+                    RemovedTags = new HBS.Collections.TagSet(),
                     ForceEvents = new SimGameForcedEvent[0],
                     Requirements = null,
                     ResultDuration = 0,
@@ -211,7 +212,7 @@ namespace SalvageOperations
 
             // build the result set
             int optionIdx = 0;
-            var options = new SimGameEventOption[Math.Min(3, mechPieces.Count + 1)];
+            var options = new SimGameEventOption[Math.Min(4, mechPieces.Count + 1)];
             foreach (var variantKVP in mechPieces.OrderByDescending(key => key.Value))
             {
                 var variant = variantKVP.Key;
@@ -252,18 +253,21 @@ namespace SalvageOperations
                     {
                         Description = new BaseDescriptionDef("BuildNothing", "BuildNothing", "Yang looks disappointed for a moment, then grins and shrugs, \"Saving these pieces up makes sense, I guess, never know when they might come in handy later on.\"", ""),
                         Weight = 100,
-                        Results = new[] { new SimGameEventResult
+                        Results = new[]
                         {
-                            Stats = new SimGameStat[0],
-                            Scope = EventScope.Company,
-                            Actions = new SimGameResultAction[0],
-                            AddedTags = new HBS.Collections.TagSet(),
-                            RemovedTags = new HBS.Collections.TagSet(),
-                            ForceEvents = new SimGameForcedEvent[0],
-                            Requirements = null,
-                            ResultDuration = 0,
-                            TemporaryResult = false
-                        } }
+                            new SimGameEventResult
+                            {
+                                Stats = new SimGameStat[0],
+                                Scope = EventScope.Company,
+                                Actions = new SimGameResultAction[0],
+                                AddedTags = new HBS.Collections.TagSet(),
+                                RemovedTags = new HBS.Collections.TagSet(),
+                                ForceEvents = new SimGameForcedEvent[0],
+                                Requirements = null,
+                                ResultDuration = 0,
+                                TemporaryResult = false
+                            }
+                        }
                     }
                 }
             };
@@ -305,16 +309,17 @@ namespace SalvageOperations
         }
 
         public static void TryBuildMechs(SimGameState simGame,
-            Dictionary<string, int> mechPieces, string id)
+            Dictionary<string, int> mechPieces, string id, bool isTriggered = false)
         {
             HBSLog.Log($"TryBuildMechs {mechPieces.Count} mechIDs");
             var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
             var chassisPieces = new Dictionary<string, int>();
 
+            LogDebug("Mech part received: " + id);
             // id is null when manually assembling, because there was no part just provided
-            if (id != null)
+            if (id != null && !isTriggered)
             {
-                LogDebug("\tAdding part: " + id);
+                LogDebug("\tAdding");
                 simGame.AddItemStat(id, "MECHPART", false);
             }
 
@@ -332,6 +337,41 @@ namespace SalvageOperations
                 }
             }
 
+            // try to build this variant and abort if not
+            if (isTriggered)
+            {
+                Logger.LogDebug($"mechPieces.Count: {mechPieces.Count()}");
+                foreach (var foo in mechPieces)
+                {
+                    LogDebug($"\t{foo.Key}");
+                }
+                var triggeredMech = simGame.DataManager.MechDefs.Get(id);
+                var triggeredPrefab = triggeredMech.Chassis.PrefabIdentifier;
+                var triggeredMatches = GetAllMatchingVariants(simGame.DataManager, triggeredPrefab);
+                LogDebug($"triggeredMatches {triggeredMatches.Count()}");
+                var triggeredParts = 0;
+                foreach (var mechDef in triggeredMatches)
+                {
+                    triggeredParts += GetMechPieces(simGame, mechDef);
+                }
+
+                LogDebug($"triggeredParts {triggeredParts}");
+                if (ShowBuildPopup &&
+                    triggeredParts >= defaultMechPartMax)
+                {
+                    // has enough pieces to build a mech, generate popup
+                    HBSLog.Log($"Generating popup for {triggeredPrefab}");
+                    LogDebug($">>> Generating popup for {triggeredPrefab}");
+                    GenerateMechPopup(simGame, triggeredPrefab);
+                    LogDebug($">>> Hiding popup");
+                    ShowBuildPopup = false;
+                }
+
+                return;
+            }
+
+            
+            // non-triggered build
             // try to build each prefab base
             var prefabIDs = chassisPieces.Keys.ToList();
             foreach (var prefabID in prefabIDs)
@@ -341,6 +381,7 @@ namespace SalvageOperations
                 var matchingMechDefs = GetAllMatchingVariants(simGame.DataManager, prefabID);
                 foreach (var mechDef in matchingMechDefs)
                 {
+                    var parts = simGame.GetItemCount(mechDef.Description.Id, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
                     chassisPieces[prefabID] += GetMechPieces(simGame, mechDef);
                 }
 
