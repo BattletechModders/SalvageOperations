@@ -1,5 +1,6 @@
 ﻿using System;
 using Newtonsoft.Json;
+using UnityEngine;
 
 namespace SalvageOperations
 {
@@ -7,6 +8,7 @@ namespace SalvageOperations
     {
         public bool SalvageValueUsesSellPrice = true;
         public bool ReplaceMechSalvageLogic = true;
+        public KeyCode Hotkey = KeyCode.A; 
         public bool Debug = false;
         
         public static ModSettings ReadSettings(string json)

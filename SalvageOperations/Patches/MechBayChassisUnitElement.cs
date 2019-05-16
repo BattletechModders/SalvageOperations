@@ -12,7 +12,7 @@ namespace SalvageOperations.Patches
     {
         public static void Prefix(MechBayChassisUnitElement __instance)
         {
-            // if salvage mech icon is shift-clicked, force assembly checking
+            // if salvage mech icon is shift-clicked, force assembly checking on that chassis
             if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
             {
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
@@ -30,6 +30,7 @@ namespace SalvageOperations.Patches
                     else
                         inventorySalvage[id] += itemCount;
                 }
+
                 // make an ID that looks like a mech part from this chassisDef
                 // chrprfmech_marauderhotd-001
                 // mechdef_firestarter_FS9-K
@@ -37,10 +38,9 @@ namespace SalvageOperations.Patches
                     .Select(def => def.Value.Chassis.Description.Id)
                     .First(def => def == chassisId);
                 fakeMechPart = fakeMechPart.Replace("chassisdef", "mechdef");
+                Main.ShowBuildPopup = true;
                 Main.TryBuildMechs(sim, inventorySalvage, fakeMechPart, true);
             }
-
-            //Logger.LogDebug($"chassisDef: {__instance.ChassisDef.PrefabIdentifier}, {__instance.ChassisDef.Description.UIName}");
         }
     }
 }

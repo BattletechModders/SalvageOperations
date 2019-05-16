@@ -28,6 +28,7 @@ namespace SalvageOperations.Patches
                         inventorySalvage[id] += itemCount;
                 }
 
+                Main.ShowBuildPopup = true;
                 Main.TryBuildMechs(sim, inventorySalvage, null);
                 return false;
             }

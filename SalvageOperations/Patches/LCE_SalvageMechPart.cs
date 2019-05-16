@@ -14,8 +14,8 @@ namespace SalvageOperations.Patches
         public static void Postfix(ListElementController_SalvageMechPart_NotListView __instance, InventoryItemElement_NotListView theWidget, SimGameState ___simState)
         {
             var defaultMechPartMax = ___simState.Constants.Story.DefaultMechPartMax;
-            var thisMechPieces = Main.GetMechPieces(___simState, __instance.mechDef);
-            var allMechPieces = Main.GetAllVariantMechPieces(___simState, __instance.mechDef);
+            var thisMechPieces = Main.GetMechParts(___simState, __instance.mechDef);
+            var allMechPieces = Main.GetAllVariantMechParts(___simState, __instance.mechDef);
 
             if (allMechPieces > thisMechPieces)
                 theWidget.mechPartsNumbersText.SetText($"{thisMechPieces} ({allMechPieces}) / {defaultMechPartMax}");

@@ -67,7 +67,7 @@ namespace SalvageOperations.Patches
             __instance.Constants.Story.MechReadyTime = readyTimeState;
         }
     }
-    
+
     [HarmonyPatch(typeof(SimGameState), "ML_ReadyMech")]
     public class SimGameState_ML_ReadyMech_Patch
     {
@@ -88,9 +88,7 @@ namespace SalvageOperations.Patches
                 }
 
                 i++;
-            } while (i < Sim.Constants.Story.DefaultMechPartMax + 1);
-
+            } while (i < maxParts + 1);
         }
     }
-
 }

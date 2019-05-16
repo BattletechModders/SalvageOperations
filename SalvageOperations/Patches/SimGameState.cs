@@ -18,7 +18,7 @@ namespace SalvageOperations.Patches
     {
         public static void Postfix()
         {
-            var hotkey = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.A);
+            var hotkey = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(Main.Settings.Hotkey);
             if (hotkey)
             {
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
@@ -35,36 +35,22 @@ namespace SalvageOperations.Patches
                         inventorySalvage[id] += itemCount;
                 }
 
+                Main.ShowBuildPopup = true;
                 Main.TryBuildMechs(sim, inventorySalvage, null);
             }
         }
     }
 
-    // where the magic starts
+    // where the mayhem starts
     [HarmonyPatch(typeof(SimGameState), "AddMechPart")]
     public static class SimGameState_AddMechPart_Patch
     {
         public static bool Prefix(SimGameState __instance, string id, SimGameInterruptManager ___interruptQueue)
         {
-            if (Main.IsResolvingContract)
-            {
-                if (!Main.SalvageFromContract.ContainsKey(id))
-                    Main.SalvageFromContract[id] = 0;
-
-                Main.SalvageFromContract[id]++;
-                return false;
-            }
-
             // buffer the incoming salvage to avoid zombies (Problem One)
             if (!Main.Salvage.ContainsKey(id))
                 Main.Salvage.Add(id, 0);
             Main.Salvage[id]++;
-
-            Logger.LogDebug($"--------- {id} ----------\nSALVAGE\n--------");
-            foreach (var kvp in Main.Salvage)
-            {
-                Logger.LogDebug($"{kvp.Key}: {kvp.Value}");
-            }
 
             Main.TryBuildMechs(__instance, Main.Salvage, id);
             return false;
@@ -83,23 +69,6 @@ namespace SalvageOperations.Patches
             }
 
             return true;
-        }
-    }
-
-    [HarmonyPatch(typeof(SimGameState), "ResolveCompleteContract")]
-    public static class SimGameState_ResolveCompleteContract_Patch
-    {
-        public static void Prefix(SimGameState __instance)
-        {
-            Main.ContractStart();
-            __instance.CompanyTags.Add("SO_Salvaging");
-        }
-
-        public static void Postfix(SimGameState __instance)
-        {
-            Main.ShowBuildPopup = true;
-            Main.TryBuildMechs(__instance, Main.SalvageFromContract, null);
-            Main.ContractEnd();
         }
     }
 
@@ -148,7 +117,8 @@ namespace SalvageOperations.Patches
                         break;
                 }
 
-                __result.Add(new ResultDescriptionEntry(new Text($"{prefix} {Interpolator.Interpolate(text, gameContext, false)}"), gameContext, stat.name));
+                __result.Add(new ResultDescriptionEntry(new Text(
+                    $"{prefix} {Interpolator.Interpolate(text, gameContext, false)}"), gameContext, stat.name));
             }
         }
     }
