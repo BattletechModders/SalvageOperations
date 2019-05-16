@@ -8,7 +8,7 @@ using UnityEngine;
 namespace SalvageOperations.Patches
 {
     [HarmonyPatch(typeof(MechBayChassisUnitElement), "OnButtonClicked")]
-    public static class MechBayChassisUnitElement_OnButtonClicked_Patch
+    public class MechBayChassisUnitElement_OnButtonClicked_Patch
     {
         public static void Prefix(MechBayChassisUnitElement __instance)
         {

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using BattleTech;
@@ -55,7 +56,7 @@ namespace SalvageOperations
 
             dataManager.MechDefs
                 .Where(x => x.Value.Chassis.Description.UIName == UIName)
-                .Do(x => variants.Add(x.Value)); // thanks harmony for the do extention method
+                .Do(x => variants.Add(x.Value)); // thanks harmony for the do extension method
 
             return variants;
         }
@@ -346,7 +347,6 @@ namespace SalvageOperations
                 else
                     AudioEventManager.PlayAudioEvent(
                         "audioeventdef_uiinteractions", "SimGame-Back-Pressed");
-
                 return;
             }
 
@@ -372,7 +372,8 @@ namespace SalvageOperations
                     LogDebug($">>> Generating popup for {variantName}");
                     GenerateMechPopup(simGame, variantName);
                     LogDebug($">>> Preventing popup");
-                    ShowBuildPopup = false;
+                    ShowBuildPopup = false;   
+
                 }
             }
         }

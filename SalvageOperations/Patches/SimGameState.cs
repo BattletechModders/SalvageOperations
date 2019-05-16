@@ -14,7 +14,7 @@ namespace SalvageOperations.Patches
 {
     // trigger hotkey
     [HarmonyPatch(typeof(SimGameState), "Update")]
-    public class SimGameState_Update_Patch
+    public static class SimGameState_Update_Patch
     {
         public static void Postfix()
         {
@@ -54,21 +54,6 @@ namespace SalvageOperations.Patches
 
             Main.TryBuildMechs(__instance, Main.Salvage, id);
             return false;
-        }
-    }
-
-    // prevent the popup until we've set it back to True with mech shift-click on Storage
-    [HarmonyPatch(typeof(SimGameInterruptManager), "QueueEventPopup")]
-    public class SimGameInterruptManager_QueueEventPopup_Patch
-    {
-        public static bool Prefix(SimGameInterruptManager __instance, SimGameEventDef evt)
-        {
-            if (evt.Description.Name == "Salvage Operations")
-            {
-                return Main.ShowBuildPopup;
-            }
-
-            return true;
         }
     }
 
