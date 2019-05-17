@@ -29,6 +29,7 @@ namespace SalvageOperations.Patches
                 }
 
                 var mechID = chassisId.Replace("chassisdef", "mechdef");
+                Main.TriggeredVariant = mechID;
                 if (!Main.SalvageFromContract.ContainsKey(mechID))
                     Main.SalvageFromContract.Add(mechID, 1);
                 else

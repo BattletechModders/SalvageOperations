@@ -50,4 +50,14 @@ namespace SalvageOperations.Patches
             def.Chassis.ChassisTags.Add("SO_Built");
         }
     }
+    
+    //Correction for scrapping mechs for money.
+    [HarmonyPatch(typeof(SimGameState), "ScrapMechPart")]
+    public static class SimGameState_ScrapMechPart_Patch
+    {
+        public static void Prefix(SimGameState __instance, ref float partMax)
+        {
+            partMax = __instance.Constants.Story.DefaultMechPartMax;
+        }
+    }
 }

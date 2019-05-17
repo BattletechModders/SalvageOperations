@@ -11,7 +11,6 @@ using UnityEngine;
 
 namespace SalvageOperations.Patches
 {
-      
     // trigger hotkey
     [HarmonyPatch(typeof(SimGameState), "Update")]
     public static class SimGameState_Update_Patch
@@ -21,28 +20,52 @@ namespace SalvageOperations.Patches
             var hotkey = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(Main.Settings.Hotkey);
             if (hotkey)
             {
-               // Logger.Log("Hotkey Triggered");
+                Logger.Log("Hotkey Triggered");
                 Main.SalvageFromContract.Clear();
                 Main.HasBeenBuilt.Clear();
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
-                //Main.ShowBuildPopup = true;
+
                 var inventorySalvage = new Dictionary<string, int>( /*Main.Salvage*/);
                 var inventory = sim.GetAllInventoryMechDefs();
+
+                var hashSet = new HashSet<MechDef>();
+                foreach (var chassis in sim.GetAllInventoryMechDefs())
+                {
+                    var replacedString = chassis.Description.Id.Replace("chassisdef", "mechdef");
+                    if (sim.DataManager.MechDefs.Keys.Contains(replacedString))
+                    {
+                        hashSet.Add(sim.DataManager.MechDefs.Get(replacedString));
+                    }
+                }
+                
+                Logger.LogDebug($"list ({hashSet.Count()})");
                 foreach (var item in inventory)
                 {
                     var inventoryName = item.Description.Id.Replace("chassisdef", "mechdef");
                     inventorySalvage[inventoryName] = 1;
-                   // Logger.Log(inventoryName);
+                    // Logger.Log(inventoryName);
                     var itemCount = sim.GetItemCount(inventoryName, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
-                 //   Logger.Log(itemCount.ToString());
+                    //   Logger.Log(itemCount.ToString());
                     if (itemCount == 0 || itemCount == 99)
                         continue;
                     if (!Main.HasBeenBuilt.ContainsKey(item.Description.Name))
-                        Main.TryBuildMechs(sim, new Dictionary<string, int> { { inventoryName, 1 } });
-                  //  Logger.Log("Post-Build");
-                    
+                        Main.TryBuildMechs(sim, new Dictionary<string, int> {{inventoryName, 1}});
+                    //  Logger.Log("Post-Build");
                 }
             }
+        }
+    }
+
+    public class Comparer : IEqualityComparer<ChassisDef>
+    {
+        public bool Equals(ChassisDef x, ChassisDef y)
+        {
+            return x.Description.Id == y.Description.Id;
+        }
+
+        public int GetHashCode(ChassisDef obj)
+        {
+            return obj.Description.Id.GetHashCode();
         }
     }
 
