@@ -1,6 +1,6 @@
 using BattleTech;
-using Harmony;
 using BattleTech.UI;
+using Harmony;
 
 namespace SalvageOperations.Patches
 {
@@ -9,7 +9,7 @@ namespace SalvageOperations.Patches
     {
         private static readonly SimGameState Sim = UnityGameInstance.BattleTechGame.Simulation;
         private static readonly int MechReadyTime = Sim.Constants.Story.MechReadyTime;
-        private static int readyTimeState = 0;
+        private static int readyTimeState;
 
         public static void Prefix(ChassisDef ___selectedChassis)
         {
@@ -41,7 +41,7 @@ namespace SalvageOperations.Patches
     {
         private static readonly SimGameState Sim = UnityGameInstance.BattleTechGame.Simulation;
         private static readonly int MechReadyTime = Sim.Constants.Story.MechReadyTime;
-        private static int readyTimeState = 0;
+        private static int readyTimeState;
 
         public static void Prefix(SimGameState __instance, string id)
         {

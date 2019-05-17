@@ -11,7 +11,7 @@ namespace SalvageOperations.Patches
 
         public static void Prefix()
         {
-            if (MechBayPanel.Visible)// && !Main.ShowBuildPopup)
+            if (MechBayPanel.Visible)
             {
                 var storageWidget = Traverse.Create(MechBayPanel).Field("storageWidget").GetValue<MechBayMechStorageWidget>();
                 storageWidget.InitInventory(MechBayPanel.Sim.GetAllInventoryMechDefs(), false);

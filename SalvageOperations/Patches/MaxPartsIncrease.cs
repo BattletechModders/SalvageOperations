@@ -1,7 +1,6 @@
 using BattleTech;
-using Harmony;
 using BattleTech.UI;
-using BattleTech.Data;
+using Harmony;
 
 namespace SalvageOperations.Patches
 {

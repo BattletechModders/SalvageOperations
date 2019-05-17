@@ -4,27 +4,29 @@ using Harmony;
 
 namespace SalvageOperations.Patches
 {
-    [HarmonyPatch(typeof(GameInstanceSave), "PreSerialization")]
-    public class GameInstanceSave_PreSerialization_Patch
-    {
-        public static void Prefix(GameInstanceSave __instance)
-        {
-            if (__instance.SaveReason == SaveReason.SIM_GAME_EVENT_RESOLVED)
-            {
-                Logger.LogDebug(">>> Allowing build popup");
-                //Main.ShowBuildPopup = true;
-            }
-        }
-    }
-
-    // maybe not needed TODO check it out
-    //[HarmonyPatch(typeof(GameInstanceSave), "PostDeserialization")]
-    //public class GameInstanceSave_PostDeserialization_Patch
+    //[HarmonyPatch(typeof(GameInstanceSave), "PreSerialization")]
+    //public class GameInstanceSave_PreSerialization_Patch
     //{
-    //    public static void Postfix()
+    //    public static void Prefix(GameInstanceSave __instance)
     //    {
-    //        Main.Salvage.Clear();
-    //        Main.ShowBuildPopup = true;
+    //        if (__instance.SaveReason == SaveReason.SIM_GAME_EVENT_RESOLVED)
+    //        {
+    //            Logger.LogDebug(">>> Allowing build popup");
+    //            //Main.ShowBuildPopup = true;
+    //        }
     //    }
     //}
+
+    // maybe not needed TODO check it out
+    [HarmonyPatch(typeof(GameInstanceSave), "PostDeserialization")]
+    public class GameInstanceSave_PostDeserialization_Patch
+    {
+        public static void Postfix()
+        {
+            Main.HasBeenBuilt.Clear();
+            Main.TestBuildAgain.Clear();
+            //Main.Salvage.Clear();
+            //Main.ShowBuildPopup = true;
+        }
+    }
 }

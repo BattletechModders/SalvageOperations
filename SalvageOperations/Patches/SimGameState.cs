@@ -2,7 +2,6 @@
 using System.Linq;
 using BattleTech;
 using BattleTech.StringInterpolation;
-using BattleTech.UI;
 using Harmony;
 using Localize;
 using UnityEngine;
@@ -37,7 +36,7 @@ namespace SalvageOperations.Patches
 
                 //Main.ShowBuildPopup = true;
                 __instance.CompanyTags.Remove("SO_Salvaging");
-                Main.TryBuildMechs(sim, inventorySalvage, null);
+                Main.TryBuildMechs(sim, inventorySalvage);
             }
         }
     }
@@ -52,7 +51,6 @@ namespace SalvageOperations.Patches
             // just add the piece
             if (id != null)
                 __instance.AddItemStat(id, "MECHPART", false);
-            //Logger.Log(id.ToString());
 
             // we're in the middle of resolving a contract, add the piece to contract
             if (Main.IsResolvingContract)
@@ -68,7 +66,7 @@ namespace SalvageOperations.Patches
             // not in contract, just try to build with what we have
             if (!__instance.CompanyTags.Contains("SO_Salvaging"))
             {
-                Main.TryBuildMechs(__instance, new Dictionary<string, int> {{id, 1}}, null);
+                Main.TryBuildMechs(__instance, new Dictionary<string, int> {{id, 1}});
             }
 
             return false;
@@ -91,7 +89,7 @@ namespace SalvageOperations.Patches
             {
                 var mechDef = __instance.DataManager.MechDefs.Get(mechID);
                 if (!Main.HasBeenBuilt.ContainsKey(mechDef.Description.Name))
-                    Main.TryBuildMechs(__instance, new Dictionary<string, int> {{mechID, 1}}, null);
+                    Main.TryBuildMechs(__instance, new Dictionary<string, int> {{mechID, 1}});
             }
 
             __instance.CompanyTags.Remove("SO_Salvaging");
