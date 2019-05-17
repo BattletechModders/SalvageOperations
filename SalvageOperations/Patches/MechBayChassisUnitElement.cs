@@ -17,9 +17,9 @@ namespace SalvageOperations.Patches
             {
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
                 var chassisId = __instance.ChassisDef.Description.Id;
-                Main.ShowBuildPopup = true;
-                Logger.LogDebug(">>> Allowing popup");
-                var inventorySalvage = new Dictionary<string, int>(Main.Salvage);
+                //Main.ShowBuildPopup = true;
+                //Logger.LogDebug(">>> Allowing popup");
+                var inventorySalvage = new Dictionary<string, int>(/*Main.Salvage*/);
                 var inventory = sim.GetAllInventoryMechDefs();
                 foreach (var item in inventory)
                 {
@@ -30,7 +30,7 @@ namespace SalvageOperations.Patches
                     else
                         inventorySalvage[id] += itemCount;
                 }
-
+    
                 // make an ID that looks like a mech part from this chassisDef
                 // chrprfmech_marauderhotd-001
                 // mechdef_firestarter_FS9-K
@@ -38,7 +38,8 @@ namespace SalvageOperations.Patches
                     .Select(def => def.Value.Chassis.Description.Id)
                     .First(def => def == chassisId);
                 fakeMechPart = fakeMechPart.Replace("chassisdef", "mechdef");
-                Main.ShowBuildPopup = true;
+                //Main.ShowBuildPopup = true;
+                sim.CompanyTags.Remove("SO_Salvaging");
                 Main.TryBuildMechs(sim, inventorySalvage, fakeMechPart, true);
             }
         }

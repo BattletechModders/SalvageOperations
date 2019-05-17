@@ -15,8 +15,8 @@ namespace SalvageOperations.Patches
             if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
             {
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
-                Main.ShowBuildPopup = true;
-                var inventorySalvage = new Dictionary<string, int>(Main.Salvage);
+                //Main.ShowBuildPopup = true;
+                var inventorySalvage = new Dictionary<string, int>(/*Main.Salvage*/);
                 var inventory = sim.GetAllInventoryMechDefs();
                 foreach (var item in inventory)
                 {
@@ -28,7 +28,7 @@ namespace SalvageOperations.Patches
                         inventorySalvage[id] += itemCount;
                 }
 
-                Main.ShowBuildPopup = true;
+                //Main.ShowBuildPopup = true;
                 Main.TryBuildMechs(sim, inventorySalvage, null);
                 return false;
             }

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using BattleTech;
@@ -16,11 +15,13 @@ namespace SalvageOperations
         internal static ILog HBSLog;
         internal static ModSettings Settings;
 
-        public static Dictionary<string, int> Salvage = new Dictionary<string, int>();
+        public static bool IsResolvingContract { get; private set; }
+        public static Dictionary<string, int> SalvageFromContract = new Dictionary<string, int>();
+        public static Dictionary<string, int> HasBeenBuilt = new Dictionary<string, int>();
+        public static Dictionary<string, int> TestBuildAgain = new Dictionary<string, int>();
 
-        private static bool _hasInitEventTracker;
         private static SimGameEventTracker eventTracker = new SimGameEventTracker();
-        internal static bool ShowBuildPopup = true;
+        private static bool _hasInitEventTracker;
 
         // ENTRY POINT
         public static void Init(string modDir, string settings)
@@ -31,6 +32,18 @@ namespace SalvageOperations
             Settings = ModSettings.ReadSettings(settings);
             // clears the Logger class' logfile
             Clear();
+        }
+
+        // CONTRACTS
+        public static void ContractStart()
+        {
+            IsResolvingContract = true;
+            SalvageFromContract.Clear();
+        }
+
+        public static void ContractEnd()
+        {
+            IsResolvingContract = false;
         }
 
         // UTIL
@@ -76,11 +89,13 @@ namespace SalvageOperations
         {
             HBSLog.Log($"Generate Event Result for {mechDef.Description.Id}");
 
-            var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
             var stats = new List<SimGameStat>();
 
             // adds the flatpacked mech
             stats.Add(new SimGameStat(GetItemStatID(mechDef.Chassis.Description.Id, "MechDef"), 1));
+            mechDef.Chassis.ChassisTags.Add("SO_Built");
+
+            var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
             var thisParts = GetMechParts(simGame, mechDef);
             thisParts = Math.Min(thisParts, defaultMechPartMax);
 
@@ -100,7 +115,6 @@ namespace SalvageOperations
                 {
                     maxParts = i;
                     removeTagName = tempTagName;
-                    Logger.Log(i.ToString());
                 }
 
                 i++;
@@ -117,6 +131,7 @@ namespace SalvageOperations
             // there could still be parts remaining that we need to delete from other variants
             var otherMechParts = new Dictionary<string, int>();
             var numPartsRemaining = simGame.Constants.Story.DefaultMechPartMax - thisParts;
+            LogDebug($"numPartsRemaining ({numPartsRemaining})");
             if (numPartsRemaining > 0)
             {
                 // delete 1 from each variant until we've gotten all the parts that we need deleted
@@ -126,7 +141,10 @@ namespace SalvageOperations
                     int partsRemoved = 0;
                     foreach (var variant in matchingVariants)
                     {
+                        LogDebug($"variant ({variant.Description.Id})");
+
                         var parts = GetMechParts(simGame, variant);
+                        LogDebug($"\tparts ({parts})");
                         if (parts > 0 && variant.Description.Id != mechDef.Description.Id)
                         {
                             if (!otherMechParts.ContainsKey(variant.Description.Id))
@@ -136,6 +154,8 @@ namespace SalvageOperations
 
                             numPartsRemaining--;
                             partsRemoved++;
+                            LogDebug($"\tnumPartsRemaining ({numPartsRemaining})");
+                            LogDebug($"\tpartsRemoved ({partsRemoved})");
 
                             if (numPartsRemaining <= 0)
                                 break;
@@ -143,15 +163,20 @@ namespace SalvageOperations
                     }
 
                     if (partsRemoved == 0)
+                    {
+                        LogDebug($"partsRemoved (was zero)");
                         break;
+                    }
                 }
             }
 
             // actually add the stats that will remove the other mech parts
             foreach (var mechID in otherMechParts.Keys)
-            {
                 stats.Add(new SimGameStat(GetItemStatID(mechID, "MECHPART"), -otherMechParts[mechID]));
-            }
+
+            //foreach (var stat in stats)
+            //    //Logger.Log($"Event Stat {stat.name} {stat.value}");
+            //    thisParts = thisParts;
 
             return new[]
             {
@@ -170,10 +195,11 @@ namespace SalvageOperations
             };
         }
 
-        private static void GenerateMechPopup(SimGameState simGame, string prefabID)
+        private static void GenerateMechPopup(SimGameState simGame, string UIName)
         {
             var mechPieces = new Dictionary<string, int>();
-            var variants = GetAllMatchingVariants(simGame.DataManager, prefabID);
+            var variants = GetAllMatchingVariants(simGame.DataManager, UIName);
+
             MechDef highestVariant = null;
             int highest = 0;
             foreach (var variant in variants)
@@ -221,7 +247,7 @@ namespace SalvageOperations
                     {
                         new SimGameEventResultSet
                         {
-                            Description = new BaseDescriptionDef(variant, variant, $"You tell Yang that you want him to build the [[DM.MechDefs[{variant}],{{DM.MechDefs[{variant}].Description.UIName}}]] and his eyes light up. \"I can't wait to get started.\"\r\n\r\nHe starts to move behind the pile of scrap, then calls out, \"Oh, and don't forget to submit a work order to 'Ready' the 'Mech when you want to get started on the refit.\"", ""),
+                            Description = new BaseDescriptionDef(variant, variant, $"You tell Yang that you want him to build the [[DM.MechDefs[{variant}],{{DM.MechDefs[{variant}].Description.UIName}}]] and his eyes light up. \"I can't wait to get started.\"\r\n\r\nHe starts to move behind the pile of scrap, then calls out, \"Oh, and don't forget to submit a work order to 'Ready' the 'Mech when you want to get started on the refit. Remember, the less pieces of this variant you gave me, the longer it will take to get to full working order.\"", ""),
                             Weight = 100,
                             Results = GetBuildMechEventResult(simGame, mechDef)
                         }
@@ -311,71 +337,112 @@ namespace SalvageOperations
                 simGame.AddItemStat(id, "MECHPART", false);
             }
 
-            // loop by number of different mechIDs
-            // setup chassis pieces for the pieces that we received
-            foreach (var mechID in mechPieces.Keys)
+            try
             {
-                var mechDef = simGame.DataManager.MechDefs.Get(mechID);
-
-                if (!chassisParts.ContainsKey(mechDef.Chassis.Description.UIName))
-                    chassisParts[mechDef.Chassis.Description.UIName] = 0;
-                HBSLog.Log($"{mechID} has prefabID {mechDef.Chassis.Description.UIName}");
-            }
-
-            // try to build this variant and abort if not
-            if (isTriggered)
-            {
-                LogDebug("Variant specific build\n======================");
-                var triggeredMechDef = simGame.DataManager.MechDefs.Get(id);
-                var triggeredUIName = triggeredMechDef.Chassis.Description.UIName;
-                var triggeredMatches = GetAllMatchingVariants(simGame.DataManager, triggeredUIName);
-
-                var triggeredParts = 0;
-                foreach (var mechDef in triggeredMatches)
-                    triggeredParts += GetMechParts(simGame, mechDef);
-
-                if (ShowBuildPopup &&
-                    triggeredParts >= defaultMechPartMax)
+                // loop by number of different mechIDs
+                // setup chassis pieces for the pieces that we received
+                LogDebug($"mechPieces ({mechPieces.Count})");
+                foreach (var mechID in mechPieces.Keys)
                 {
-                    // has enough pieces to build a mech, generate popup
-                    HBSLog.Log($"Generating popup for {triggeredUIName}");
-                    LogDebug($">>> Generating popup for {triggeredUIName}");
-                    GenerateMechPopup(simGame, triggeredUIName);
-                    LogDebug($">>> Preventing popup");
-                    ShowBuildPopup = false;
-                }
-                else
-                    AudioEventManager.PlayAudioEvent(
-                        "audioeventdef_uiinteractions", "SimGame-Back-Pressed");
-                return;
-            }
+                    var mechDef = simGame.DataManager.MechDefs.Get(mechID);
 
-            // try to build each prefab base
-            var variantNames = chassisParts.Keys.ToList();
-            LogDebug("Regular build\n=============");
-            foreach (var variantName in variantNames)
-            {
-                // accumulate chassis pieces that we already have
-                chassisParts[variantName] = 0;
-                var matchingMechDefs = GetAllMatchingVariants(simGame.DataManager, variantName);
+                    if (!chassisParts.ContainsKey(mechDef.Chassis.Description.UIName))
+                        chassisParts[mechDef.Chassis.Description.UIName] = 0;
+                    HBSLog.Log($"{mechID} has prefabID {mechDef.Chassis.Description.UIName}");
+                }
+
+                // try to build each chassis
+                // add chassis pieces that we already have
+                var UINames = chassisParts.Keys.ToList();
+                var UIName = UINames.First();
+                var matchingMechDefs = GetAllMatchingVariants(simGame.DataManager, UIName);
+                string MechName = "name";
                 foreach (var mechDef in matchingMechDefs)
-                    chassisParts[variantName] += GetMechParts(simGame, mechDef);
+                {
+                    chassisParts[UIName] += GetMechParts(simGame, mechDef);
+                    MechName = mechDef.Description.Name;
+                }
 
-                LogDebug($"\tAll variant parts for {variantName}: " + chassisParts[variantName]);
-                HBSLog.Log($"{variantName} has {chassisParts[variantName]} pieces");
+                //HBSLog.Log($"{UIName} has {chassisPieces[UIName]} pieces");
 
-                if (ShowBuildPopup &&
-                    chassisParts[variantName] >= defaultMechPartMax)
+                if (chassisParts[UIName] >= defaultMechPartMax)
                 {
                     // has enough pieces to build a mech, generate popup
-                    HBSLog.Log($"Generating popup for {variantName}");
-                    LogDebug($">>> Generating popup for {variantName}");
-                    GenerateMechPopup(simGame, variantName);
-                    LogDebug($">>> Preventing popup");
-                    ShowBuildPopup = false;   
+                    //HBSLog.Log($"Generting popup for {UIName}");
+                    GenerateMechPopup(simGame, UIName);
+                    if (!Main.HasBeenBuilt.ContainsKey(MechName))
+                    {
+                        Main.HasBeenBuilt[MechName] = 1;
+                        Main.TestBuildAgain[UIName] = 1;
+                    }
 
+                    Holder.BuiltAgain = true;
                 }
+            }
+            catch (Exception ex)
+            {
+                Error(ex);
             }
         }
     }
 }
+
+                // try to build this variant and abort if not
+                //if (isTriggered)
+                //{
+                //    LogDebug("Variant specific build\n======================");
+                //    var triggeredMechDef = simGame.DataManager.MechDefs.Get(id);
+                //    var triggeredUIName = triggeredMechDef.Chassis.Description.UIName;
+                //    var triggeredMatches = GetAllMatchingVariants(simGame.DataManager, triggeredUIName);
+                //    LogDebug($"triggeredMechDef ({triggeredMechDef}) triggeredUIName ({triggeredUIName}) triggeredMatches ({triggeredMatches})");
+                //
+                //    var triggeredParts = 0;
+                //    foreach (var mechDef in triggeredMatches)
+                //    {
+                //        triggeredParts += GetMechParts(simGame, mechDef);
+                //        LogDebug($"triggeredParts ({triggeredParts})");
+                //    }
+                //
+                //    if (ShowBuildPopup &&
+                //        triggeredParts >= defaultMechPartMax)
+                //    {
+                //        // has enough pieces to build a mech, generate popup
+                //        HBSLog.Log($"Generating popup for {triggeredUIName}");
+                //        LogDebug($">>> Generating popup for {triggeredUIName}");
+                //        GenerateMechPopup(simGame, triggeredUIName);
+                //        LogDebug($">>> Preventing popup");
+                //        ShowBuildPopup = false;
+                //    }
+                //    else
+                //        AudioEventManager.PlayAudioEvent(
+                //            "audioeventdef_uiinteractions", "SimGame-Back-Pressed");
+                //    return;
+                //}
+                //
+                //// try to build each prefab base
+                //var variantNames = chassisParts.Keys.ToList();
+                //LogDebug("Regular build\n=============");
+                //foreach (var variantName in variantNames)
+                //{
+                //    // accumulate chassis pieces that we already have
+                //    chassisParts[variantName] = 0;
+                //    var matchingMechDefs = GetAllMatchingVariants(simGame.DataManager, variantName);
+                //    foreach (var mechDef in matchingMechDefs)
+                //        chassisParts[variantName] += GetMechParts(simGame, mechDef);
+                //
+                //    LogDebug($"\tAll variant parts for {variantName}: " + chassisParts[variantName]);
+                //    HBSLog.Log($"{variantName} has {chassisParts[variantName]} pieces");
+                //
+                //    if (ShowBuildPopup &&
+                //        chassisParts[variantName] >= defaultMechPartMax)
+                //    {
+                //        // has enough pieces to build a mech, generate popup
+                //        HBSLog.Log($"Generating popup for {variantName}");
+                //        LogDebug($">>> Generating popup for {variantName}");
+                //        GenerateMechPopup(simGame, variantName);
+                //        LogDebug($">>> Preventing popup");
+                //        ShowBuildPopup = false;   
+                //
+                //    }
+                //}
+        

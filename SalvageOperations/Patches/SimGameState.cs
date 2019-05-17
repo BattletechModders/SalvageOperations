@@ -16,14 +16,14 @@ namespace SalvageOperations.Patches
     [HarmonyPatch(typeof(SimGameState), "Update")]
     public static class SimGameState_Update_Patch
     {
-        public static void Postfix()
+        public static void Postfix(SimGameState __instance)
         {
             var hotkey = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(Main.Settings.Hotkey);
             if (hotkey)
             {
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
-                Main.ShowBuildPopup = true;
-                var inventorySalvage = new Dictionary<string, int>(Main.Salvage);
+                //Main.ShowBuildPopup = true;
+                var inventorySalvage = new Dictionary<string, int>( /*Main.Salvage*/);
                 var inventory = sim.GetAllInventoryMechDefs();
                 foreach (var item in inventory)
                 {
@@ -35,7 +35,8 @@ namespace SalvageOperations.Patches
                         inventorySalvage[id] += itemCount;
                 }
 
-                Main.ShowBuildPopup = true;
+                //Main.ShowBuildPopup = true;
+                __instance.CompanyTags.Remove("SO_Salvaging");
                 Main.TryBuildMechs(sim, inventorySalvage, null);
             }
         }
@@ -45,15 +46,56 @@ namespace SalvageOperations.Patches
     [HarmonyPatch(typeof(SimGameState), "AddMechPart")]
     public static class SimGameState_AddMechPart_Patch
     {
-        public static bool Prefix(SimGameState __instance, string id, SimGameInterruptManager ___interruptQueue)
+        public static bool Prefix(SimGameState __instance, string id)
         {
-            // buffer the incoming salvage to avoid zombies (Problem One)
-            if (!Main.Salvage.ContainsKey(id))
-                Main.Salvage.Add(id, 0);
-            Main.Salvage[id]++;
+            // this function replaces the function from SimGameState, prefix return false
+            // just add the piece
+            if (id != null)
+                __instance.AddItemStat(id, "MECHPART", false);
+            //Logger.Log(id.ToString());
 
-            Main.TryBuildMechs(__instance, Main.Salvage, id);
+            // we're in the middle of resolving a contract, add the piece to contract
+            if (Main.IsResolvingContract)
+            {
+                if (!Main.SalvageFromContract.ContainsKey(id))
+                    Main.SalvageFromContract[id] = 0;
+
+                Main.SalvageFromContract[id]++;
+                return false;
+            }
+
+            // TODO: what happens when you buy multiple pieces from the store at once and can build for each?
+            // not in contract, just try to build with what we have
+            if (!__instance.CompanyTags.Contains("SO_Salvaging"))
+            {
+                Main.TryBuildMechs(__instance, new Dictionary<string, int> {{id, 1}}, null);
+            }
+
             return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(SimGameState), "ResolveCompleteContract")]
+    public static class SimGameState_ResolveCompleteContract_Patch
+    {
+        public static void Prefix(SimGameState __instance)
+        {
+            Main.ContractStart();
+            __instance.CompanyTags.Add("SO_Salvaging");
+            Main.HasBeenBuilt.Clear();
+        }
+
+        public static void Postfix(SimGameState __instance)
+        {
+            foreach (var mechID in Main.SalvageFromContract.Keys)
+            {
+                var mechDef = __instance.DataManager.MechDefs.Get(mechID);
+                if (!Main.HasBeenBuilt.ContainsKey(mechDef.Description.Name))
+                    Main.TryBuildMechs(__instance, new Dictionary<string, int> {{mechID, 1}}, null);
+            }
+
+            __instance.CompanyTags.Remove("SO_Salvaging");
+            Main.ContractEnd();
         }
     }
 
