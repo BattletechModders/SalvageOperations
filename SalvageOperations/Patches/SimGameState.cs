@@ -11,6 +11,7 @@ using UnityEngine;
 
 namespace SalvageOperations.Patches
 {
+      
     // trigger hotkey
     [HarmonyPatch(typeof(SimGameState), "Update")]
     public static class SimGameState_Update_Patch
@@ -20,23 +21,34 @@ namespace SalvageOperations.Patches
             var hotkey = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(Main.Settings.Hotkey);
             if (hotkey)
             {
+                Logger.Log("Hotkey Triggered");
+                Main.SalvageFromContract.Clear();
+                Main.HasBeenBuilt.Clear();
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
                 //Main.ShowBuildPopup = true;
                 var inventorySalvage = new Dictionary<string, int>( /*Main.Salvage*/);
                 var inventory = sim.GetAllInventoryMechDefs();
                 foreach (var item in inventory)
                 {
-                    var id = item.Description.Id.Replace("chassisdef", "mechdef");
+                    var id = item.Description.Id.Replace("chassisdef","mechdef");
+                    Logger.Log(id);
                     var itemCount = sim.GetItemCount(id, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
-                    if (!inventorySalvage.ContainsKey(id))
-                        inventorySalvage.Add(id, itemCount);
-                    else
-                        inventorySalvage[id] += itemCount;
+                    Logger.Log(itemCount.ToString());
+                    if (itemCount != 0 && itemCount != 99)
+                    {
+                        if (!inventorySalvage.ContainsKey(id))
+                        {
+                            inventorySalvage.Add(id, 1);
+                            Logger.Log("Added");
+                        }
+                    }
+                    Logger.Log("Pre-Built");
+                    if (!Main.HasBeenBuilt.ContainsKey(item.Description.Name))
+                    {
+                        Logger.Log("Built");
+                        Main.TryBuildMechs(sim, inventorySalvage);
+                    }
                 }
-
-                //Main.ShowBuildPopup = true;
-                __instance.CompanyTags.Remove("SO_Salvaging");
-                Main.TryBuildMechs(sim, inventorySalvage);
             }
         }
     }

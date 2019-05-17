@@ -63,12 +63,17 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />
+    <Compile Include="Patches\MechBayChassisUnitElement.cs" />
     <Compile Include="ModSettings.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="Patches\AAR_SalvageChosen.cs" />
     <Compile Include="Patches\Contract.cs" />
     <Compile Include="Patches\GameInstanceSave.cs" />
     <Compile Include="Patches\LCE_SalvageMechPart.cs" />
+    <Compile Include="Patches\MaxPartsIncrease.cs" />
+    <Compile Include="Patches\MechBayPanel.cs" />
+    <Compile Include="Patches\ReadyMechDelay.cs" />
+    <Compile Include="Patches\SimGameInterruptManager.cs" />
     <Compile Include="Patches\SimGameState.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -77,6 +82,6 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy $(TargetPath) N:\SteamLibrary\steamapps\common\BATTLETECH\Mods\SalvageOperations /Y</PostBuildEvent>
+    <PostBuildEvent>xcopy "$(TargetPath)" "C:\Program Files (x86)\Steam\steamapps\common\BATTLETECH\Mods\SalvageOperations" /Y</PostBuildEvent>
   </PropertyGroup>
 </Project>
