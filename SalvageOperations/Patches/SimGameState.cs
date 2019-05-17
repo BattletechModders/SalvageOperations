@@ -21,7 +21,7 @@ namespace SalvageOperations.Patches
             var hotkey = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(Main.Settings.Hotkey);
             if (hotkey)
             {
-                Logger.Log("Hotkey Triggered");
+               // Logger.Log("Hotkey Triggered");
                 Main.SalvageFromContract.Clear();
                 Main.HasBeenBuilt.Clear();
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
@@ -30,24 +30,17 @@ namespace SalvageOperations.Patches
                 var inventory = sim.GetAllInventoryMechDefs();
                 foreach (var item in inventory)
                 {
-                    var id = item.Description.Id.Replace("chassisdef","mechdef");
-                    Logger.Log(id);
-                    var itemCount = sim.GetItemCount(id, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
-                    Logger.Log(itemCount.ToString());
-                    if (itemCount != 0 && itemCount != 99)
-                    {
-                        if (!inventorySalvage.ContainsKey(id))
-                        {
-                            inventorySalvage.Add(id, 1);
-                            Logger.Log("Added");
-                        }
-                    }
-                    Logger.Log("Pre-Built");
+                    var inventoryName = item.Description.Id.Replace("chassisdef", "mechdef");
+                    inventorySalvage[inventoryName] = 1;
+                   // Logger.Log(inventoryName);
+                    var itemCount = sim.GetItemCount(inventoryName, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
+                 //   Logger.Log(itemCount.ToString());
+                    if (itemCount == 0 || itemCount == 99)
+                        continue;
                     if (!Main.HasBeenBuilt.ContainsKey(item.Description.Name))
-                    {
-                        Logger.Log("Built");
-                        Main.TryBuildMechs(sim, inventorySalvage);
-                    }
+                        Main.TryBuildMechs(sim, new Dictionary<string, int> { { inventoryName, 1 } });
+                  //  Logger.Log("Post-Build");
+                    
                 }
             }
         }
