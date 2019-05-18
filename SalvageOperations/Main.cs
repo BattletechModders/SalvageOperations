@@ -80,28 +80,32 @@ namespace SalvageOperations
 
             // Do not allow parts from Excluded mechs to be used for builds.
             var allowedVariants = new List<MechDef>(variants);
-            foreach (MechDef mechdef in variants)
+
+           // Logger.Log("Scrubbing Started");
+           // Logger.Log(ExcludedVariantHolder.Description.UIName);
+
+            if (Settings.VariantExceptions.Contains(ExcludedVariantHolder.Description.Id))
             {
-                if (mechdef.Description.UIName == UIName)
+                allowedVariants.Clear();
+                allowedVariants.Add(ExcludedVariantHolder);
+             //   Logger.Log("Matched");
+             //   Logger.Log(ExcludedVariantHolder.Description.UIName);
+            }
+            else
+            {
+                foreach (MechDef mechdef in variants)
                 {
-                    Logger.Log("Matched");
-                    Logger.Log(mechdef.Description.UIName);
-                    allowedVariants.Clear();
-                    allowedVariants.Add(mechdef);
-                    break;
-                }
-
-
-                if (!Settings.VariantExceptions.Contains(mechdef.Description.Id)) continue;
-                {
-                    LogDebug("Removed");
-                    LogDebug(mechdef.Description.Id);
-                    allowedVariants.Remove(mechdef);
+                    if (Settings.VariantExceptions.Contains(mechdef.Description.Id))
+                    {
+                     //   Logger.Log("Removed");
+                    //    Logger.Log(mechdef.Description.Id);
+                        allowedVariants.Remove(mechdef);
+                    }
                 }
             }
-
             return allowedVariants;
         }
+
 
         private static List<MechDef> GetAllMatchingVariants(DataManager dataManager, MechDef mechDef)
         {
@@ -121,7 +125,10 @@ namespace SalvageOperations
             {
                 var mechDef = sim.DataManager.MechDefs.Get(mechID);
                 if (!HasBeenBuilt.ContainsKey(mechDef.Description.Name))
-                    TryBuildMechs(sim, new Dictionary<string, int> {{mechID, 1}});
+                {
+                    ExcludedVariantHolder = mechDef;
+                    TryBuildMechs(sim, new Dictionary<string, int> { { mechID, 1 } });
+                }
             }
 
             SalvageFromContract.Clear();
@@ -309,7 +316,6 @@ namespace SalvageOperations
             {
                 var variant = variantKVP.Key;
                 var mechDef = simGame.DataManager.MechDefs.Get(variant);
-                ExcludedVariantHolder = mechDef;
 
                 if (optionIdx > 2)
                 {
@@ -492,7 +498,10 @@ namespace SalvageOperations
             {
                 chassisPieces[UIName] += GetMechParts(simGame, mechDef);
                 mechName = mechDef.Description.Name;
+              //  Logger.Log(mechDef.Description.Id);
+              //  Logger.Log(chassisPieces[UIName].ToString());
             }
+
 
             // Logger.Log($"{UIName} has {chassisPieces[UIName]} pieces");
             if (chassisPieces[UIName] >= defaultMechPartMax)
