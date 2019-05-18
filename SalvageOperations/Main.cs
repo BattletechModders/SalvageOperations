@@ -81,25 +81,27 @@ namespace SalvageOperations
             // Do not allow parts from Excluded mechs to be used for builds.
             var allowedVariants = new List<MechDef>(variants);
 
-           // Logger.Log("Scrubbing Started");
-           // Logger.Log(ExcludedVariantHolder.Description.UIName);
-
-            if (Settings.VariantExceptions.Contains(ExcludedVariantHolder.Description.Id))
+            // Logger.Log("Scrubbing Started");
+            // Logger.Log(ExcludedVariantHolder.Description.UIName);
+            if (Settings.ExcludeVariantExceptions)
             {
-                allowedVariants.Clear();
-                allowedVariants.Add(ExcludedVariantHolder);
-             //   Logger.Log("Matched");
-             //   Logger.Log(ExcludedVariantHolder.Description.UIName);
-            }
-            else
-            {
-                foreach (MechDef mechdef in variants)
+                if (Settings.VariantExceptions.Contains(ExcludedVariantHolder.Description.Id))
                 {
-                    if (Settings.VariantExceptions.Contains(mechdef.Description.Id))
+                    allowedVariants.Clear();
+                    allowedVariants.Add(ExcludedVariantHolder);
+                    //   Logger.Log("Matched");
+                    //   Logger.Log(ExcludedVariantHolder.Description.UIName);
+                }
+                else
+                {
+                    foreach (MechDef mechdef in variants)
                     {
-                     //   Logger.Log("Removed");
-                    //    Logger.Log(mechdef.Description.Id);
-                        allowedVariants.Remove(mechdef);
+                        if (Settings.VariantExceptions.Contains(mechdef.Description.Id))
+                        {
+                            //   Logger.Log("Removed");
+                            //    Logger.Log(mechdef.Description.Id);
+                            allowedVariants.Remove(mechdef);
+                        }
                     }
                 }
             }

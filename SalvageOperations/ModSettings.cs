@@ -16,6 +16,7 @@ namespace SalvageOperations
         public bool SalvageValueUsesSellPrice = true;
         public bool ReplaceMechSalvageLogic = true;
         public List<string> VariantExceptions = new List<string>();
+        public bool ExcludeVariantExceptions = true;
 
         public bool Debug = false;
 
