@@ -15,7 +15,7 @@ namespace SalvageOperations
         public float Rounding_Cutoff = 0.75f;
         public bool SalvageValueUsesSellPrice = true;
         public bool ReplaceMechSalvageLogic = true;
-        public List<string> Variant_Exceptions = new List<string>();
+        public List<string> VariantExceptions = new List<string>();
 
         public bool Debug = false;
 

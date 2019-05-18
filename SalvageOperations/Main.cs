@@ -82,10 +82,22 @@ namespace SalvageOperations
             var allowedVariants = new List<MechDef>(variants);
             foreach (MechDef mechdef in variants)
             {
+                if (mechdef.Description.UIName == UIName)
+                {
+                    Logger.Log("Matched");
+                    Logger.Log(mechdef.Description.UIName);
+                    allowedVariants.Clear();
+                    allowedVariants.Add(mechdef);
+                    break;
+                }
+
+
                 if (!Settings.VariantExceptions.Contains(mechdef.Description.Id)) continue;
-                LogDebug("Removed");
-                LogDebug(mechdef.Description.Id);
-                allowedVariants.Remove(mechdef);
+                {
+                    LogDebug("Removed");
+                    LogDebug(mechdef.Description.Id);
+                    allowedVariants.Remove(mechdef);
+                }
             }
 
             return allowedVariants;
@@ -101,23 +113,6 @@ namespace SalvageOperations
             return $"Item.{type}.{id}";
         }
 
-        //Starting code for Exceptions.
-        //private static bool CanAssembleVariant(MechDef variant)
-        //{
-        //    if (Settings.VariantExceptions.Contains(variant.Description.Id))
-        //        return false;
-
-        //    if (Settings.TagExceptions != null && Settings.TagExceptions.Count > 0)
-        //    {
-        //        foreach (var tag in Settings.TagExceptions)
-        //        {
-        //            if (variant.MechTags.Contains(tag))
-        //                return false;
-        //        }
-        //    }
-
-        //    return true;
-        //}
 
         internal static void SimulateContractSalvage()
         {
