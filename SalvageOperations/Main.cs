@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -12,19 +13,18 @@ using static Logger;
 
 namespace SalvageOperations
 {
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
     public static class Main
     {
         internal static ILog HBSLog;
         internal static ModSettings Settings;
         internal static string modDir;
 
-        public static bool IsResolvingContract { get; private set; }
-        public static Dictionary<string, int> SalvageFromContract = new Dictionary<string, int>();
-        public static Dictionary<string, int> HasBeenBuilt = new Dictionary<string, int>();
-        public static Dictionary<string, int> TestBuildAgain = new Dictionary<string, int>();
-        public static string TriggeredVariant = "";
-        public static MechDef Excluded_Variant_Holder;
-        
+        internal static bool IsResolvingContract { get; private set; }
+        internal static Dictionary<string, int> SalvageFromContract = new Dictionary<string, int>();
+        internal static Dictionary<string, int> HasBeenBuilt = new Dictionary<string, int>();
+        internal static string TriggeredVariant = "";
+        internal static MechDef ExcludedVariantHolder;
 
         private static SimGameEventTracker eventTracker = new SimGameEventTracker();
         private static bool _hasInitEventTracker;
@@ -78,30 +78,17 @@ namespace SalvageOperations
                 .Where(x => x.Value.Chassis.Description.UIName == UIName)
                 .Do(x => variants.Add(x.Value)); // thanks harmony for the do extension method
 
-            //Do not allow parts from Excluded mechs to be used for builds.
-
-            
+            // Do not allow parts from Excluded mechs to be used for builds.
+            var allowedVariants = new List<MechDef>(variants);
             foreach (MechDef mechdef in variants)
             {
-                if (mechdef.Description.UIName == UIName)
-                {
-                    Logger.Log("Matched");
-                    Logger.Log(mechdef.Description.UIName);
-                    variants.Clear();
-                    variants.Add(mechdef);
-                    break;
-                }
-
-                if (Settings.Variant_Exceptions.Contains(mechdef.Description.Id))
-                {
-                    Logger.Log("Removed");
-                    Logger.Log(mechdef.Description.Id);
-                    variants.Remove(mechdef);
-                }
-                          
+                if (!Settings.VariantExceptions.Contains(mechdef.Description.Id)) continue;
+                LogDebug("Removed");
+                LogDebug(mechdef.Description.Id);
+                allowedVariants.Remove(mechdef);
             }
 
-            return variants;
+            return allowedVariants;
         }
 
         private static List<MechDef> GetAllMatchingVariants(DataManager dataManager, MechDef mechDef)
@@ -175,7 +162,6 @@ namespace SalvageOperations
 
             SalvageFromContract = inventorySalvage;
             HasBeenBuilt.Clear();
-            TestBuildAgain.Clear();
             SimulateContractSalvage();
         }
 
@@ -328,7 +314,7 @@ namespace SalvageOperations
             {
                 var variant = variantKVP.Key;
                 var mechDef = simGame.DataManager.MechDefs.Get(variant);
-                Excluded_Variant_Holder = mechDef;
+                ExcludedVariantHolder = mechDef;
 
                 if (optionIdx > 2)
                 {
@@ -450,9 +436,9 @@ namespace SalvageOperations
             var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
 
             var eventString = "As you board, Yang asks for you to meet him in the 'Mech Bay. When you arrive, you find him grinning in front of a load of unidentifiable scrap.\r\n\r\n\"Commander, we don't have enough salvage from any single 'Mech to build ourselves a new one, but...\" He pauses dramatically. \"...I could cobble together the salvage from a couple related 'Mechs.\"\r\n\r\n\"What do you think?\" He grins like a kid in a candy shop. \"Which one should we build?\"";
-            if (mechParts.Count == 1 && !Settings.Variant_Exceptions.Contains(highestVariant.Description.Id)) // we have only a single option
+            if (mechParts.Count == 1 && !Settings.VariantExceptions.Contains(highestVariant.Description.Id)) // we have only a single option
                 eventString = $"As you board, Yang asks for you to meet him in the 'Mech Bay. When you arrive, you find him grinning in front of a load of unidentifiable scrap.\r\n\r\n\"Commander, we've got enough salvage from the [[DM.MechDefs[{highestVariant}],{highestVariant.Description.UIName}]] to put it together.\" He pauses, rubbing his beard. \"But, we could save it to build another variant, later.\"\r\n\r\n\"What do you think?\" He grins like a kid in a candy shop. \"Should we build it?\"";
-            else if (mechParts.Count == 1 && Settings.Variant_Exceptions.Contains(highestVariant.Description.Id)) // We have an excluded mech as our option.
+            else if (mechParts.Count == 1 && Settings.VariantExceptions.Contains(highestVariant.Description.Id)) // We have an excluded mech as our option.
                 eventString = $"As you board, Yang asks for you to meet him in the 'Mech Bay. When you arrive, you find him grinning in front of a load of unidentifiable scrap.\r\n\r\n\"Commander, we've got enough salvage from the [[DM.MechDefs[{highestVariant}],{highestVariant.Description.UIName}]] to put it together.\" He pauses, absolutely giddy. \"This is a truly rare 'Mech - something I've always dreamed of working on!\"\r\n\r\n\"What do you think?\" He grins like a kid in a candy shop. \"Should we build it?\"";
             else if (highest >= defaultMechPartMax) // we have enough salvage to build a mech
                 eventString = "As you board, Yang asks for you to meet him in the 'Mech Bay. When you arrive, you find him grinning in front of a load of unidentifiable scrap.\r\n\r\n\"Commander, we've got enough salvage to build a 'Mech out completely, but...\" He pauses dramatically. \"...I could cobble together the salvage from a couple related 'Mechs if you wanted to build something else.\"\r\n\r\n\"What do you think?\" He grins like a kid in a candy shop. \"Which one should we build?\"";

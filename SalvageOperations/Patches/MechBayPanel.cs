@@ -1,9 +1,6 @@
 using BattleTech.UI;
 using Harmony;
-using HBS;
-using ModelShark;
 using UnityEngine;
-using TooltipManager = BattleTech.UI.Tooltips.TooltipManager;
 
 namespace SalvageOperations.Patches
 {
