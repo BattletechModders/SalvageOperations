@@ -1,5 +1,4 @@
 using BattleTech.Save;
-using BattleTech.Save.SaveGameStructure;
 using Harmony;
 
 namespace SalvageOperations.Patches
@@ -25,8 +24,6 @@ namespace SalvageOperations.Patches
         {
             Main.HasBeenBuilt.Clear();
             Main.TestBuildAgain.Clear();
-            //Main.Salvage.Clear();
-            //Main.ShowBuildPopup = true;
         }
     }
 }

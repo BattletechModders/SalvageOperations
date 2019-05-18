@@ -25,20 +25,21 @@ namespace SalvageOperations.Patches
                 Main.HasBeenBuilt.Clear();
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
 
-                var inventorySalvage = new Dictionary<string, int>( /*Main.Salvage*/);
+                var inventorySalvage = new Dictionary<string, int>();
                 var inventory = sim.GetAllInventoryMechDefs();
 
-                var hashSet = new HashSet<MechDef>();
-                foreach (var chassis in sim.GetAllInventoryMechDefs())
-                {
-                    var replacedString = chassis.Description.Id.Replace("chassisdef", "mechdef");
-                    if (sim.DataManager.MechDefs.Keys.Contains(replacedString))
-                    {
-                        hashSet.Add(sim.DataManager.MechDefs.Get(replacedString));
-                    }
-                }
-                
-                Logger.LogDebug($"list ({hashSet.Count()})");
+                //var hashSet = new HashSet<MechDef>();
+                //foreach (var chassis in sim.GetAllInventoryMechDefs())
+                //{
+                //    var replacedString = chassis.Description.Id.Replace("chassisdef", "mechdef");
+                //    if (sim.DataManager.MechDefs.Keys.Contains(replacedString))
+                //    {
+                //        hashSet.Add(sim.DataManager.MechDefs.Get(replacedString));
+                //    }
+                //}
+                //
+                //Logger.LogDebug($"list ({hashSet.Count()})");
+
                 foreach (var item in inventory)
                 {
                     var inventoryName = item.Description.Id.Replace("chassisdef", "mechdef");

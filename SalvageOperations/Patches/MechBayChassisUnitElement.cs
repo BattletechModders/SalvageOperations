@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using BattleTech;
 using BattleTech.UI;
 using Harmony;
 using UnityEngine;
@@ -14,22 +12,13 @@ namespace SalvageOperations.Patches
             // if salvage mech icon is shift-clicked, force assembly checking on that chassis
             if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
             {
-                var sim = UnityGameInstance.BattleTechGame.Simulation;
+                Main.SalvageFromContract.Clear();
                 var chassisId = __instance.ChassisDef.Description.Id;
-                var inventorySalvage = new Dictionary<string, int>( /*Main.Salvage*/);
-                var inventory = sim.GetAllInventoryMechDefs();
-                foreach (var item in inventory)
-                {
-                    var id = item.Description.Id.Replace("chassisdef", "mechdef");
-                    var itemCount = sim.GetItemCount(id, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
-                    if (!inventorySalvage.ContainsKey(id))
-                        inventorySalvage.Add(id, itemCount);
-                    else
-                        inventorySalvage[id] += itemCount;
-                }
+                Logger.LogDebug($"chassisId ({chassisId})");
 
                 var mechID = chassisId.Replace("chassisdef", "mechdef");
                 Main.TriggeredVariant = mechID;
+                Logger.LogDebug($"mechID ({mechID})");
                 if (!Main.SalvageFromContract.ContainsKey(mechID))
                     Main.SalvageFromContract.Add(mechID, 1);
                 else
