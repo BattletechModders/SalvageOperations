@@ -42,7 +42,10 @@ SalvageValueUsesSellPrice: true |  Does the salvage screen show the salvage valu
 ReplaceSalvageLogic: true | Replace the in-game salvage logic with the salvage algorithm from this mod. 
 VariantExceptions: {mechdefs} | Listing of 'Mechs by mechdefs that can not be combined to salvage.
 
-## Mod Compatability
+### Mod Compatability
 
-* AdjustedMechAssembly, AdjustedMechAssemblyCC, AdjustedMechSalvage
+Not Compatible with:
+* AdjustedMechAssembly
+* AdjustedMechAssemblyCC
+* AdjustedMechSalvage
 
