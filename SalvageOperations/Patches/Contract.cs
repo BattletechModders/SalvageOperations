@@ -27,7 +27,7 @@ namespace SalvageOperations.Patches
 
             // remove all mech parts
             var numRemovedSalvage = finalPotentialSalvage.RemoveAll(x => x.Type == SalvageDef.SalvageType.MECH_PART);
-            Main.HBSLog.Log($"Removed {numRemovedSalvage} mech pieces.");
+           // Main.HBSLog.Log($"Removed {numRemovedSalvage} mech pieces.");
 
             // go through enemyMechs and re-add mech parts based on damage
             foreach (var unitResult in enemyMechs)
@@ -41,13 +41,13 @@ namespace SalvageOperations.Patches
                     continue;
 
                 double bits = 0;
-                Main.HBSLog.Log($"Evaluating {mechDef.Description.Id}");
+                //Main.HBSLog.Log($"Evaluating {mechDef.Description.Id}");
 
                 // CT is worth 1/2 of the salvage
                 if (!mechDef.IsLocationDestroyed(ChassisLocations.CenterTorso))
                 {
-                    bits += maxMechParts / 2.0;
-                    Main.HBSLog.Log($"+ {maxMechParts / 2.0} CT Intact");
+                    bits += maxMechParts * Main.Settings.CT_Value;
+                    //Main.HBSLog.Log($"+ {maxMechParts * Main.Settings.CT_Value} CT Intact");
                 }
 
                 // rest of the 6 pieces combined are worth the other 1/2 of the salvage, so 1/12 each
@@ -55,12 +55,12 @@ namespace SalvageOperations.Patches
                 {
                     if (!mechDef.IsLocationDestroyed(limbLocation))
                     {
-                        bits += maxMechParts / 12.0;
-                        Main.HBSLog.Log($"+ {maxMechParts / 12.0} {limbLocation} Intact");
+                        bits += maxMechParts * Main.Settings.Other_Parts_Value;
+                       // Main.HBSLog.Log($"+ {maxMechParts * Main.Settings.Other_Parts_Value} {limbLocation} Intact");
                     }
                 }
 
-                var mechParts = (int)Math.Round(bits - 0.25);
+                var mechParts = (int)Math.Round(bits - (1 - Main.Settings.Rounding_Cutoff));
                 Main.HBSLog.Log($"= floor({bits}) = {mechParts}");
 
                 if (mechParts > 0)

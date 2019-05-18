@@ -27,7 +27,7 @@ namespace SalvageOperations.Patches
             } while (i < Sim.Constants.Story.DefaultMechPartMax + 1);
 
             readyTimeState = Sim.Constants.Story.MechReadyTime;
-            Sim.Constants.Story.MechReadyTime = MechReadyTime * (Sim.Constants.Story.DefaultMechPartMax + 1 - maxParts);
+            Sim.Constants.Story.MechReadyTime = (int)(MechReadyTime * Main.Settings.ReadyMechDelayFactor * (Sim.Constants.Story.DefaultMechPartMax + 1 - maxParts));
         }
 
         public static void Postfix()
@@ -59,7 +59,7 @@ namespace SalvageOperations.Patches
             } while (i < Sim.Constants.Story.DefaultMechPartMax + 1);
 
             readyTimeState = __instance.Constants.Story.MechReadyTime;
-            __instance.Constants.Story.MechReadyTime = MechReadyTime * (Sim.Constants.Story.DefaultMechPartMax + 1 - maxParts);
+            __instance.Constants.Story.MechReadyTime = (int)(MechReadyTime * Main.Settings.ReadyMechDelayFactor * (Sim.Constants.Story.DefaultMechPartMax + 1 - maxParts));
         }
 
         public static void Postfix(SimGameState __instance)
