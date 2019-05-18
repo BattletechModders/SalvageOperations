@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using BattleTech;
 using BattleTech.Data;
+using BattleTech.Save.Core;
 using Harmony;
 using HBS.Collections;
 using HBS.Logging;
@@ -97,6 +98,7 @@ namespace SalvageOperations
                     TryBuildMechs(sim, new Dictionary<string, int> {{mechID, 1}});
             }
 
+            SalvageFromContract.Clear();
             HasBeenBuilt.Clear();
             sim.CompanyTags.Remove("SO_Salvaging");
         }
@@ -104,8 +106,9 @@ namespace SalvageOperations
         internal static void GlobalBuild()
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
-            var inventorySalvage = new Dictionary<string, int>( /*Main.Salvage*/);
+            var inventorySalvage = new Dictionary<string, int>();
             var inventory = sim.GetAllInventoryMechDefs();
+            LogDebug($"inventory {inventory.Count}");
             foreach (var item in inventory)
             {
                 var itemCount = 0;
@@ -114,20 +117,22 @@ namespace SalvageOperations
                 {
                     itemCount = sim.GetItemCount(id, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
                     inventorySalvage.Add(id, itemCount);
+                    LogDebug($"New key: {id} ({itemCount})");
                 }
                 else
                 {
                     itemCount = sim.GetItemCount(id, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
                     inventorySalvage[id] += itemCount;
+                    LogDebug($"New value for {id} ({itemCount})");
                 }
             }
 
-            LogDebug($"itemCount ({inventorySalvage.Count}");
+            LogDebug($"inventorySalvage ({inventorySalvage.Count})");
 
             SalvageFromContract = inventorySalvage;
             HasBeenBuilt.Clear();
+            TestBuildAgain.Clear();
             SimulateContractSalvage();
-            SalvageFromContract.Clear();
         }
 
         // MEAT
@@ -375,23 +380,23 @@ namespace SalvageOperations
             {
                 LogDebug(">>> Reordering options");
                 LogDebug("Before");
-                foreach (var foo in options)
-                    LogDebug(foo.Description.Name);
-
+                foreach (var option in options)
+                    LogDebug(option.Description.Name);
+            
                 var variantModel = Regex.Match(TriggeredVariant, @".+_.+_(.+)").Groups[1].Value;
                 LogDebug($"TriggeredVariant {TriggeredVariant} variantModel {variantModel}");
                 var tempOptions = options.Where(option => !option.Description.Name.Contains(variantModel)).ToList();
-
+            
                 foreach (var option in options)
                 {
                     if (option.Description.Name.Contains(variantModel))
                         tempOptions.Insert(0, option);
                 }
-
+            
                 LogDebug("After");
-                foreach (var foo in options)
-                    LogDebug(foo.Description.Name);
-
+                foreach (var option in tempOptions)
+                    LogDebug(option.Description.Name);
+            
                 options = tempOptions.ToArray();
                 TriggeredVariant = "";
             }
