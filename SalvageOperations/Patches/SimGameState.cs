@@ -22,38 +22,6 @@ namespace SalvageOperations.Patches
             {
                 Logger.Log("Hotkey Triggered");
                 Main.GlobalBuild();
-                //Main.SalvageFromContract.Clear();
-                //Main.HasBeenBuilt.Clear();
-                //var sim = UnityGameInstance.BattleTechGame.Simulation;
-                //
-                //var inventorySalvage = new Dictionary<string, int>();
-                //var inventory = sim.GetAllInventoryMechDefs();
-                //
-                ////var hashSet = new HashSet<MechDef>();
-                ////foreach (var chassis in sim.GetAllInventoryMechDefs())
-                ////{
-                ////    var replacedString = chassis.Description.Id.Replace("chassisdef", "mechdef");
-                ////    if (sim.DataManager.MechDefs.Keys.Contains(replacedString))
-                ////    {
-                ////        hashSet.Add(sim.DataManager.MechDefs.Get(replacedString));
-                ////    }
-                ////}
-                ////
-                ////Logger.LogDebug($"list ({hashSet.Count()})");
-                //
-                //foreach (var item in inventory)
-                //{
-                //    var inventoryName = item.Description.Id.Replace("chassisdef", "mechdef");
-                //    inventorySalvage[inventoryName] = 1;
-                //    // Logger.Log(inventoryName);
-                //    var itemCount = sim.GetItemCount(inventoryName, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
-                //    //   Logger.Log(itemCount.ToString());
-                //    if (itemCount == 0 || itemCount == 99)
-                //        continue;
-                //    if (!Main.HasBeenBuilt.ContainsKey(item.Description.Name))
-                //        Main.TryBuildMechs(sim, new Dictionary<string, int> {{inventoryName, 1}});
-                //    //  Logger.Log("Post-Build");
-                //}
             }
         }
     }

@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using BattleTech;
 using BattleTech.Data;
-using BattleTech.Save.Core;
 using Harmony;
 using HBS.Collections;
 using HBS.Logging;
@@ -86,6 +85,23 @@ namespace SalvageOperations
         private static string GetItemStatID(string id, string type)
         {
             return $"Item.{type}.{id}";
+        }
+
+        private static bool CanAssembleVariant(MechDef variant)
+        {
+            if (Settings.VariantExceptions.Contains(variant.Description.Id))
+                return false;
+
+            if (Settings.TagExceptions != null && Settings.TagExceptions.Count > 0)
+            {
+                foreach (var tag in Settings.TagExceptions)
+                {
+                    if (variant.MechTags.Contains(tag))
+                        return false;
+                }
+            }
+
+            return true;
         }
 
         internal static void SimulateContractSalvage()
@@ -382,21 +398,21 @@ namespace SalvageOperations
                 LogDebug("Before");
                 foreach (var option in options)
                     LogDebug(option.Description.Name);
-            
+
                 var variantModel = Regex.Match(TriggeredVariant, @".+_.+_(.+)").Groups[1].Value;
                 LogDebug($"TriggeredVariant {TriggeredVariant} variantModel {variantModel}");
                 var tempOptions = options.Where(option => !option.Description.Name.Contains(variantModel)).ToList();
-            
+
                 foreach (var option in options)
                 {
                     if (option.Description.Name.Contains(variantModel))
                         tempOptions.Insert(0, option);
                 }
-            
+
                 LogDebug("After");
                 foreach (var option in tempOptions)
                     LogDebug(option.Description.Name);
-            
+
                 options = tempOptions.ToArray();
                 TriggeredVariant = "";
             }
