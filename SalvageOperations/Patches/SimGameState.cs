@@ -20,7 +20,7 @@ namespace SalvageOperations.Patches
             var hotkey = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(Main.Settings.Hotkey);
             if (hotkey)
             {
-               // Logger.Log("Hotkey Triggered");
+                // Logger.Log("Hotkey Triggered");
                 Main.GlobalBuild();
             }
         }
@@ -64,7 +64,7 @@ namespace SalvageOperations.Patches
             // not in contract, just try to build with what we have
             if (!__instance.CompanyTags.Contains("SO_Salvaging"))
             {
-                Main.ExcludedVariantHolder = __instance.DataManager.MechDefs.Get(id);
+                //          Main.ExcludedVariantHolder = __instance.DataManager.MechDefs.Get(id);
                 Main.TryBuildMechs(__instance, new Dictionary<string, int> {{id, 1}});
             }
 
@@ -87,10 +87,10 @@ namespace SalvageOperations.Patches
             foreach (var mechID in Main.SalvageFromContract.Keys)
             {
                 var mechDef = __instance.DataManager.MechDefs.Get(mechID);
-                if (!Main.HasBeenBuilt.ContainsKey(mechDef.Description.Name))
+                if (!Main.HasBeenBuilt.Contains(mechDef.Description.Name))
                 {
-                    Main.ExcludedVariantHolder = mechDef;
-                    Main.TryBuildMechs(__instance, new Dictionary<string, int> { { mechID, 1 } });
+                    // Main.ExcludedVariantHolder = mechDef;
+                    Main.TryBuildMechs(__instance, new Dictionary<string, int> {{mechID, 1}});
                 }
             }
 

@@ -2,15 +2,53 @@
     "Name": "SalvageOperations",
     "DLL": "SalvageOperations.dll",
 
-    "Version": "1.2.2",
+    "Version": "1.2.3",
     "Description": "Changes how mech salvage works.",
     "Author": "mpstark",
-    "Website": "www.github.com/BattleTechModders/SalvageOperations",
+	"Modified By": "gnivler and donZappo",
+    "Website": "https://github.com/gnivler/SalvageOperations",
 
     "ConflictsWith": [ "AdjustedMechAssembly", "AdjustedMechAssemblyCC", "AdjustedMechSalvage" ],
     "Settings": {
+		"ReadyMechDelayFactor": 1,
+		"CT_Value": 0.5,
+		"Other_Parts_Value": 0.0833333,
+		"Rounding_Cutoff": 0.75,
         "SalvageValueUsesSellPrice": true,
         "ReplaceMechSalvageLogic": true,
-        "Debug": false,
+		
+		"ExcludeVariantExceptions": true,
+		"VariantExceptionsDefs": [
+			"mechdef_bombardier_BMB-10D",
+			"mechdef_dervish_DV-6M",
+			"mechdef_hornet_HNT-151",
+			"mechdef_hornet_HNT-152",
+			"mechdef_mackie_MSK-7A",
+			"mechdef_whitworth_WTH-1",
+			"mechdef_whitworth_WTH-1S", 
+			"mechdef_exterminator_EXT-4A",
+			"mechdef_exterminator_EXT-4D",
+			"mechdef_falcon_FLC-4N",
+			"mechdef_flashman_FLS-7K",
+			"mechdef_gladiator_GLD-3R",
+			"mechdef_gladiator_GLD-4R",
+			"mechdef_hermes_HER-1A",
+			"mechdef_hermes_HER-1B",
+			"mechdef_hermes ii_HER-2M",
+			"mechdef_hermes ii_HER-2S",
+			"mechdef_hermes ii_HER-4K",
+			"mechdef_icarusII_ICR-1S",
+			"mechdef_lancelot_LNC25-02",
+			"mechdef_thug_THG-10E",
+			"mechdef_wyvern_WVE-6N",
+			"mechdef_hussar_HSR-300-D",
+			"mechdef_thorn_THE-F",
+			"mechdef_toro_TR-A-6"
+			],
+			"VariantExceptionsTags": [
+				"unit_hero",
+			],
+		
+        "Debug": true,
     }
 }
