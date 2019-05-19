@@ -2,7 +2,6 @@
 
 BattleTech mod to revamp how 'Mech salvage is generated and how 'Mechs are assembled.
 
-## What it does currently
 
 ### 'Mech Salvage Drops
 
