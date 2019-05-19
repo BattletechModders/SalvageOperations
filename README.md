@@ -27,7 +27,7 @@ BattleTech mod to revamp how 'Mech salvage is generated and how 'Mechs are assem
 ### Hotkeys for 'Mech Assembly
 
 * Shift-(right mouse click) a 'Mech in the Storage to attempt to assemble that variant from available parts. 
-* Shift-(right mouse click) the Storage tab to assemble using all availabe parts in your inventory.
+* Shift-(right mouse click) the Storage tab to assemble using all available parts in your inventory.
 
 ### Settings
 
