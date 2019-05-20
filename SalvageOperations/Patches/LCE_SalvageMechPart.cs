@@ -18,7 +18,7 @@ namespace SalvageOperations.Patches
             var thisMechPieces = Main.GetMechParts(___simState, __instance.mechDef);
             var allMechPieces = Main.GetAllVariantMechParts(___simState, __instance.mechDef);
 
-            if (!Main.Settings.VariantExceptionsDefs.Contains(__instance.mechDef.Description.Id))
+            if (!Main.Settings.ExcludedMechIds.Contains(__instance.mechDef.Description.Id))
                 theWidget.mechPartsNumbersText.SetText($"{thisMechPieces} ({allMechPieces}) / {defaultMechPartMax}");
             else
                 theWidget.mechPartsNumbersText.SetText($"{thisMechPieces} (R) / {defaultMechPartMax}");

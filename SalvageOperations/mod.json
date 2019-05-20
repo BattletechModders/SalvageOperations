@@ -1,31 +1,33 @@
 {
-    "Name": "SalvageOperations",
-    "DLL": "SalvageOperations.dll",
-
-    "Version": "1.2.3",
-    "Description": "Changes how mech salvage works.",
-    "Author": "mpstark",
+	"Name": "SalvageOperations",
+	"DLL": "SalvageOperations.dll",
+	"Version": "1.2.3",
+	"Description": "Changes how mech salvage works.",
+	"Author": "mpstark",
 	"Modified By": "gnivler and donZappo",
-    "Website": "https://github.com/gnivler/SalvageOperations",
-
-    "ConflictsWith": [ "AdjustedMechAssembly", "AdjustedMechAssemblyCC", "AdjustedMechSalvage" ],
-    "Settings": {
+	"Website": "https://github.com/gnivler/SalvageOperations",
+	"ConflictsWith": [
+		"AdjustedMechAssembly",
+		"AdjustedMechAssemblyCC",
+		"AdjustedMechSalvage"
+	],
+	"Settings": {
 		"ReadyMechDelayFactor": 1,
 		"CT_Value": 0.5,
 		"Other_Parts_Value": 0.0833333,
 		"Rounding_Cutoff": 0.75,
-        "SalvageValueUsesSellPrice": true,
-        "ReplaceMechSalvageLogic": true,
-		
-		"ExcludeVariantExceptions": true,
-		"VariantExceptionsDefs": [
+		"SalvageValueUsesSellPrice": true,
+		"ReplaceMechSalvageLogic": true,
+		"ExcludeVariantsById": true,
+		"ExcludeVariantsByTag": true,
+		"ExcludedMechIds": [
 			"mechdef_bombardier_BMB-10D",
 			"mechdef_dervish_DV-6M",
 			"mechdef_hornet_HNT-151",
 			"mechdef_hornet_HNT-152",
 			"mechdef_mackie_MSK-7A",
 			"mechdef_whitworth_WTH-1",
-			"mechdef_whitworth_WTH-1S", 
+			"mechdef_whitworth_WTH-1S",
 			"mechdef_exterminator_EXT-4A",
 			"mechdef_exterminator_EXT-4D",
 			"mechdef_falcon_FLC-4N",
@@ -43,12 +45,12 @@
 			"mechdef_wyvern_WVE-6N",
 			"mechdef_hussar_HSR-300-D",
 			"mechdef_thorn_THE-F",
-			"mechdef_toro_TR-A-6"
-			],
-			"VariantExceptionsTags": [
-				"unit_hero",
-			],
-		
-        "Debug": true,
-    }
+			"mechdef_toro_TR-A-6",
+			"mechdef_hunchback_HBK-4G"
+		],
+		"ExcludedMechTags": [
+			"unit_hero"
+		],
+		"Debug": true
+	}
 }

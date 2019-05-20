@@ -53,7 +53,7 @@ namespace SalvageOperations.Patches
             //if (!__instance.CompanyTags.Contains("SO_Salvaging"))
             {
                 //          Main.ExcludedVariantHolder = __instance.DataManager.MechDefs.Get(id);
-                Main.TryBuildMechs(__instance, new Dictionary<string, int> {{id, 1}});
+                Main.TryBuildMechs(new Dictionary<string, int> {{id, 1}});
             }
 
             return false;
@@ -79,7 +79,7 @@ namespace SalvageOperations.Patches
                 if (!Main.HasBeenBuilt.Contains(mechDef.Description.Name))
                 {
                     // Main.ExcludedVariantHolder = mechDef;
-                    Main.TryBuildMechs(__instance, new Dictionary<string, int> {{mechID, 1}});
+                    Main.TryBuildMechs(new Dictionary<string, int> {{mechID, 1}});
                 }
             }
             Main.Salvaging = false;

@@ -15,9 +15,10 @@ namespace SalvageOperations
         public float Rounding_Cutoff = 0.75f;
         public bool SalvageValueUsesSellPrice = true;
         public bool ReplaceMechSalvageLogic = true;
-        public List<string> VariantExceptionsDefs = new List<string>();
-        public List<string> VariantExceptionTags = new List<string>();
-        public bool ExcludeVariants = true;
+        public List<string> ExcludedMechIds = new List<string>();
+        public List<string> ExcludedMechTags = new List<string>();
+        public bool ExcludeVariantsById = true;
+        public bool ExcludeVariantsByTag = true;
 
         public bool Debug = false;
 
