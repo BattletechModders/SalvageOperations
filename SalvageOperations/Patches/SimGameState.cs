@@ -26,19 +26,6 @@ namespace SalvageOperations.Patches
         }
     }
 
-    public class Comparer : IEqualityComparer<ChassisDef>
-    {
-        public bool Equals(ChassisDef x, ChassisDef y)
-        {
-            return x.Description.Id == y.Description.Id;
-        }
-
-        public int GetHashCode(ChassisDef obj)
-        {
-            return obj.Description.Id.GetHashCode();
-        }
-    }
-
     // where the mayhem starts
     [HarmonyPatch(typeof(SimGameState), "AddMechPart")]
     public static class SimGameState_AddMechPart_Patch
@@ -62,7 +49,8 @@ namespace SalvageOperations.Patches
 
             // TODO: what happens when you buy multiple pieces from the store at once and can build for each?
             // not in contract, just try to build with what we have
-            if (!__instance.CompanyTags.Contains("SO_Salvaging"))
+            if (!Main.Salvaging)
+            //if (!__instance.CompanyTags.Contains("SO_Salvaging"))
             {
                 //          Main.ExcludedVariantHolder = __instance.DataManager.MechDefs.Get(id);
                 Main.TryBuildMechs(__instance, new Dictionary<string, int> {{id, 1}});
@@ -78,7 +66,8 @@ namespace SalvageOperations.Patches
         public static void Prefix(SimGameState __instance)
         {
             Main.ContractStart();
-            __instance.CompanyTags.Add("SO_Salvaging");
+            Main.Salvaging = true;
+           // __instance.CompanyTags.Add("SO_Salvaging");
             Main.HasBeenBuilt.Clear();
         }
 
@@ -93,8 +82,8 @@ namespace SalvageOperations.Patches
                     Main.TryBuildMechs(__instance, new Dictionary<string, int> {{mechID, 1}});
                 }
             }
-
-            __instance.CompanyTags.Remove("SO_Salvaging");
+            Main.Salvaging = false;
+            //__instance.CompanyTags.Remove("SO_Salvaging");
             Main.ContractEnd();
         }
     }

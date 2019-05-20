@@ -16,7 +16,7 @@ namespace SalvageOperations.Patches
             var storageWidget = Traverse.Create(mechBayPanel).Field("storageWidget").GetValue<MechBayMechStorageWidget>();
             
             // TODO this throws nulls
-            if (!storageWidget.enabled) return;
+            if (!storageWidget.Visible) return;
             try
             {
                 storageWidget.InitInventory(sim.GetAllInventoryMechDefs(), false);

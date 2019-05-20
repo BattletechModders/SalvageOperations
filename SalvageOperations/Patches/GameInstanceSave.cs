@@ -10,7 +10,7 @@ namespace SalvageOperations.Patches
         public static void Postfix()
         {
             Main.HasBeenBuilt.Clear();
-            Main.TriggeredVariant = "";
+            Main.TriggeredVariant = null;
         }
     }
 }

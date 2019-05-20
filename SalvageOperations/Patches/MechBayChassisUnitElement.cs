@@ -1,3 +1,4 @@
+using BattleTech;
 using BattleTech.UI;
 using Harmony;
 using UnityEngine;
@@ -14,16 +15,13 @@ namespace SalvageOperations.Patches
             {
                 Main.SalvageFromContract.Clear();
                 var chassisId = __instance.ChassisDef.Description.Id;
-                Logger.LogDebug($"chassisId ({chassisId})");
+                Logger.LogDebug($"chassisId selected: {chassisId}");
 
                 var mechID = chassisId.Replace("chassisdef", "mechdef");
-                Main.TriggeredVariant = mechID;
-                Logger.LogDebug($"mechID ({mechID})");
-                if (!Main.SalvageFromContract.ContainsKey(mechID))
-                    Main.SalvageFromContract.Add(mechID, 1);
-                else
-                    Main.SalvageFromContract[mechID] = 1;
+                Main.TriggeredVariant = UnityGameInstance.BattleTechGame.DataManager.MechDefs.Get(mechID);
 
+                Main.SalvageFromContract.Clear();
+                Main.SalvageFromContract.Add(mechID, 1);
                 Main.SimulateContractSalvage();
                 Main.SalvageFromContract.Remove(mechID);
             }
