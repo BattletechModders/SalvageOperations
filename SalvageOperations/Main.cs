@@ -74,67 +74,14 @@ namespace SalvageOperations
 
         private static List<MechDef> GetAllMatchingVariants(DataManager dataManager, string prefabId)
         {
-            LogDebug($"GetAllMatchingVariants: {prefabId}");
+            //LogDebug($"GetAllMatchingVariants: {prefabId}");
             var variants = new List<MechDef>();
 
             dataManager.MechDefs
                 .Where(x => x.Value.Chassis.PrefabIdentifier == prefabId)
                 .Do(x => variants.Add(x.Value)); // thanks harmony for the do extension method
-            //LogDebug($"Before: {variants.Count}");
-            // Do not allow parts from Excluded mechs to be used for builds.
-            var allowedVariants = new List<MechDef>(variants);
 
-            // Logger.Log("Scrubbing Started");
-            // Logger.Log(ExcludedVariantHolder.Description.UIName);
-            //if (Settings.ExcludeVariantsById)
-            //{
-            //    LogDebug("Excluding...");
-            //    const string nameOnlyPattern = @"mechdef_(.+)_.+";
-            //    const string prefabNamePattern = @".+_(.+)Base.+";
-            //    foreach (var mechDef in variants)
-            //    {
-            //        
-            //        // mechdef_hunchback_HBK-4G
-            //        var matchMechId = Regex.Match(mechDef, nameOnlyPattern);
-            //        var matchPrefab = Regex.Match(prefabId, prefabNamePattern);
-            //        LogDebug($"matches? {matchMechId.Groups[1]} : {matchPrefab.Groups[1]}");
-            //        // if we have a mechId to prefab match, remove it unless it's the triggered
-            //        if (matchMechId.Groups[1] == matchPrefab.Groups[1])
-            //            if (TriggeredVariant == null)
-            //                allowedVariants.Remove(dataManager.MechDefs.Get(mechDef));
-            //            else if (TriggeredVariant.Name != matchPrefab.Groups[1].ToString())
-            //                allowedVariants.Remove(dataManager.MechDefs.Get(mechDef));
-            //
-            //        
-            //        LogDebug($"After: {allowedVariants.Count}");
-            //    }
-            //
-            //    //if (Settings.ExcludedMechIds.Contains(id))
-            //    //{
-            //    //    allowedVariants.Clear();
-            //    //    allowedVariants.Add(id);
-            //    //    //   Logger.Log("Matched");
-            //    //    //   Logger.Log(ExcludedVariantHolder.Description.UIName);
-            //    //}
-            //    //else
-            //    //{
-            //    //    foreach (MechDef mechdef in variants)
-            //    //    {
-            //    //        if (Settings.ExcludedMechIds.Contains(mechdef.Description.Id))
-            //    //        {
-            //    //            //   Logger.Log("Removed");
-            //    //            //    Logger.Log(mechdef.Description.Id);
-            //    //            allowedVariants.Remove(mechdef);
-            //    //        }
-            //    //    }
-            //    //}
-            //}
-
-            //if (Settings.ExcludedMechTags.Contains(tag))
-            //{
-            //}
-
-            return allowedVariants;
+            return variants;
         }
 
         private static List<MechDef> ExcludeVariants(List<MechDef> variants)
@@ -296,14 +243,12 @@ namespace SalvageOperations
                             if (!otherMechParts.ContainsKey(variant.Description.Id))
                                 otherMechParts[variant.Description.Id] = 0;
 
-                            if (otherMechParts[variant.Description.Id] != parts)
-                            {
-                                otherMechParts[variant.Description.Id]++;
-                                numPartsRemaining--;
-                                partsRemoved++;
-                                LogDebug($"\tnumPartsRemaining ({numPartsRemaining})");
-                                LogDebug($"\tpartsRemoved ({partsRemoved})");
-                            }
+                            //if (otherMechParts[variant.Description.Id] != parts)
+                            //{
+                            otherMechParts[variant.Description.Id]++;
+                            numPartsRemaining--;
+                            partsRemoved++;
+                            //}
 
                             if (numPartsRemaining <= 0)
                                 break;
@@ -322,7 +267,14 @@ namespace SalvageOperations
             foreach (var mechID in otherMechParts.Keys)
             {
                 LogDebug($"Adding MECHPART removal stat {mechID}, {otherMechParts[mechID]} parts");
-                stats.Add(new SimGameStat(GetItemStatID(mechID, "MECHPART"), -otherMechParts[mechID]));
+                try
+                {
+                    stats.Add(new SimGameStat(GetItemStatID(mechID, "MECHPART"), -otherMechParts[mechID]));
+                }
+                catch (Exception ex)
+                {
+                    Error(ex);
+                }
             }
 
             return new[]
@@ -426,7 +378,7 @@ namespace SalvageOperations
                                     }
                                 }
                             };
-                            LogDebug(options[0].ResultSets[0].Description.Details);
+                            //LogDebug(options[0].ResultSets[0].Description.Details);
                         }
                         else
                             LogDebug("Already in the list");
@@ -457,10 +409,10 @@ namespace SalvageOperations
                 // global build
                 if (TriggeredVariant != null)
                 {
-                    LogDebug($"Comparing {variant} and {TriggeredVariant.Description.Id}");
+                    //LogDebug($"Comparing {variant} and {TriggeredVariant.Description.Id}");
                     if (variant == TriggeredVariant.Description.Id)
                     {
-                        LogDebug("variant == TriggeredVariant.Description.Id, variantAlreadyListed = true");
+                        //LogDebug("variant == TriggeredVariant.Description.Id, variantAlreadyListed = true");
                         variantAlreadyListed = true;
                     }
                 }
@@ -470,8 +422,7 @@ namespace SalvageOperations
 
             // add the option to not build anything, in last place
             // Length property - 1 for the last array element
-            LogDebug("Add the option to not build anything");
-            options[options.Length - 1] = new SimGameEventOption
+            options[optionIdx] = new SimGameEventOption
             {
                 Description = new BaseDescriptionDef("BuildNothing", "Tell Yang not to build anything right now.", "BuildNothing", ""),
                 RequirementList = null,
@@ -500,20 +451,13 @@ namespace SalvageOperations
                 }
             };
 
-            var optionList = new List<SimGameEventOption>(options);
-            options = options.Where(option => option != null).ToArray();
-
             // put the selected variant at the top regardless of part count
             if (variantAlreadyListed)
             {
                 var variantModel = Regex.Match(TriggeredVariant.Description.Id, @".+_.+_(.+)").Groups[1].Value;
                 LogDebug($"TriggeredVariant {TriggeredVariant.Description.Id} variantModel {variantModel}");
                 // add everything except the selected variant
-                var tempOptions = options.Where(option => !option.Description.Name.Contains(variantModel)).ToList();
-
-                LogDebug(">>> Reordering options");
-                foreach (var option in options)
-                    LogDebug(option.Description.Name);
+                var tempOptions = options.Where(option => option != null && !option.Description.Name.Contains(variantModel)).ToList();
 
                 // add the select variant
                 foreach (var option in options)
@@ -522,7 +466,7 @@ namespace SalvageOperations
                         tempOptions.Insert(0, option);
                 }
 
-                LogDebug("After");
+                LogDebug("Reordered options");
                 foreach (var option in tempOptions)
                     LogDebug(option.Description.Name);
 
@@ -532,7 +476,7 @@ namespace SalvageOperations
             TriggeredVariant = null;
 
             LogDebug("OPTIONS\n=======");
-            options.Do(x => LogDebug(x.ResultSets[0].Description.Details));
+            options.Where(option => option != null).Do(x => LogDebug(Regex.Match(x.ResultSets[0].Description.Details, @"mechdef_.+_(.+)]\.").Groups[1].ToString()));
 
             // setup the event string based on the situation
             var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
@@ -559,7 +503,7 @@ namespace SalvageOperations
                 new RequirementDef {Scope = EventScope.Company},
                 new RequirementDef[0],
                 new SimGameEventObject[0],
-                options, 1);
+                options.Where(option => option != null).ToArray(), 1);
             if (!_hasInitEventTracker)
             {
                 eventTracker.Init(new[] {EventScope.Company}, 0, 0, SimGameEventDef.SimEventType.NORMAL, simGame);
