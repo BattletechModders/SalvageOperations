@@ -359,9 +359,9 @@ namespace SalvageOperations
                         {
                             LogDebug("Moving options down");
                             // move options 0 and 1, to 1 and 2
-                            var tempOption = options[1];
-                            options[1] = options[0];
-                            options[2] = tempOption;
+                            //var tempOption = options[1];
+                            //options[1] = options[0];
+                            //options[2] = tempOption;
 
                             var mechId = TriggeredVariant.Description.Id;
                             options[0] = new SimGameEventOption
@@ -476,7 +476,8 @@ namespace SalvageOperations
             TriggeredVariant = null;
 
             LogDebug("OPTIONS\n=======");
-            options.Where(option => option != null).Do(x => LogDebug(Regex.Match(x.ResultSets[0].Description.Details, @"mechdef_.+_(.+)]\.").Groups[1].ToString()));
+            LogDebug(options[0].ResultSets[0].Description.Details);
+            //options.Where(option => option != null).Do(x => LogDebug(Regex.Match(x.ResultSets[0].Description.Details, @"mechdef_.+_(.+)]\.").Groups[1].ToString()));
 
             // setup the event string based on the situation
             var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
