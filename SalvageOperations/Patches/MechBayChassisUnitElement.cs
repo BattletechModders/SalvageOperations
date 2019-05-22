@@ -3,6 +3,8 @@ using BattleTech.UI;
 using Harmony;
 using UnityEngine;
 
+// ReSharper disable InconsistentNaming
+
 namespace SalvageOperations.Patches
 {
     [HarmonyPatch(typeof(MechBayChassisUnitElement), "OnButtonClicked")]
@@ -17,13 +19,13 @@ namespace SalvageOperations.Patches
                 var chassisId = __instance.ChassisDef.Description.Id;
                 Logger.LogDebug($"chassisId selected: {chassisId}");
 
-                var mechID = chassisId.Replace("chassisdef", "mechdef");
-                Main.TriggeredVariant = UnityGameInstance.BattleTechGame.DataManager.MechDefs.Get(mechID);
+                var mechId = chassisId.Replace("chassisdef", "mechdef");
+                Main.TriggeredVariant = UnityGameInstance.BattleTechGame.DataManager.MechDefs.Get(mechId);
 
                 Main.SalvageFromContract.Clear();
-                Main.SalvageFromContract.Add(mechID, 1);
+                Main.SalvageFromContract.Add(mechId, 1);
                 Main.SimulateContractSalvage();
-                Main.SalvageFromContract.Remove(mechID);
+                Main.SalvageFromContract.Remove(mechId);
             }
         }
     }

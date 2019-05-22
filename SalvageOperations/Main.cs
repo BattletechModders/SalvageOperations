@@ -11,6 +11,8 @@ using HBS.Collections;
 using HBS.Logging;
 using static Logger;
 
+// ReSharper disable InconsistentNaming
+
 namespace SalvageOperations
 {
     [SuppressMessage("ReSharper", "InconsistentNaming")]
@@ -18,18 +20,16 @@ namespace SalvageOperations
     {
         internal static ILog HBSLog;
         internal static ModSettings Settings;
-        internal static string modDir;
-
+        private static string modDir;
+        
         internal static bool IsResolvingContract { get; private set; }
+        
         internal static Dictionary<string, int> SalvageFromContract = new Dictionary<string, int>();
-        internal static List<string> HasBeenBuilt = new List<string>();
-
-        internal static MechDef TriggeredVariant;
-        //internal static string TriggeredVariant;
-
-        private static SimGameEventTracker eventTracker = new SimGameEventTracker();
-        private static bool _hasInitEventTracker;
+        internal static readonly List<string> HasBeenBuilt = new List<string>();
         internal static bool Salvaging;
+        internal static MechDef TriggeredVariant;
+        private static readonly SimGameEventTracker eventTracker = new SimGameEventTracker();
+        private static bool _hasInitEventTracker;
 
         // ENTRY POINT
         public static void Init(string directory, string settings)
@@ -58,13 +58,13 @@ namespace SalvageOperations
         // UTIL
         public static int GetAllVariantMechParts(SimGameState simGame, MechDef mechDef)
         {
-            int mechPieces = 0;
+            int mechParts = 0;
 
             var variants = GetAllMatchingVariants(simGame.DataManager, mechDef);
             foreach (var variant in variants)
-                mechPieces += GetMechParts(simGame, variant);
+                mechParts += GetMechParts(simGame, variant);
 
-            return mechPieces;
+            return mechParts;
         }
 
         public static int GetMechParts(SimGameState simGame, MechDef mechDef)
@@ -87,17 +87,30 @@ namespace SalvageOperations
         private static List<MechDef> ExcludeVariants(List<MechDef> variants)
         {
             // if it's an excluded variant it can only build with itself
-            if (TriggeredVariant != null && Settings.ExcludedMechIds.Any(x => x == TriggeredVariant.Description.Id))
+            if (TriggeredVariant != null &&
+                Settings.ExcludeVariantsById &&
+                Settings.ExcludedMechIds.Any(id => id == TriggeredVariant.Description.Id))
             {
-                LogDebug(">>> Selected excluded mech: " + TriggeredVariant.Description.Id);
+                LogDebug(">>> Selected excluded mech id: " + TriggeredVariant.Description.Id);
+                return new List<MechDef>() {TriggeredVariant};
+            }
+
+            if (TriggeredVariant != null &&
+                Settings.ExcludeVariantsByTag &&
+                Settings.ExcludedMechTags.Any(tag => TriggeredVariant.MechTags.Any(x => x == tag)))
+            {
+                LogDebug(">>> Selected excluded mech tag: " + TriggeredVariant.Description.Id);
                 return new List<MechDef>() {TriggeredVariant};
             }
 
             var allowedVariants = new List<MechDef>(variants);
-            foreach (var variant in variants)
+            foreach (var variant in variants.Where(x => x != null))
             {
                 // remove all variants appearing in the exclusion list
-                if (Settings.ExcludedMechIds.Any(excludedMechId => excludedMechId == variant.Description.Id))
+                if (Settings.ExcludeVariantsById &&
+                    Settings.ExcludedMechIds.Any(id => id == variant.Description.Id) ||
+                    Settings.ExcludeVariantsByTag &&
+                    Settings.ExcludedMechTags.Any(tag => variant.MechTags.Any(t => t == tag)))
                 {
                     LogDebug($">>> Removing variant {variant.Description.Id}");
                     allowedVariants.Remove(variant);
@@ -148,29 +161,29 @@ namespace SalvageOperations
         internal static void GlobalBuild()
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
-            var inventorySalvage = new Dictionary<string, int>();
+            var inventoryChassis = new Dictionary<string, int>();
             var inventory = sim.GetAllInventoryMechDefs();
-            foreach (var item in inventory)
+            foreach (var chassis in inventory)
             {
                 var itemCount = 0;
-                var id = item.Description.Id.Replace("chassisdef", "mechdef");
-                if (!inventorySalvage.ContainsKey(id))
+                var mechId = chassis.Description.Id.Replace("chassisdef", "mechdef");
+                if (!inventoryChassis.ContainsKey(mechId))
                 {
-                    itemCount = sim.GetItemCount(id, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
-                    inventorySalvage.Add(id, itemCount);
-                    LogDebug($"New key: {id} ({itemCount})");
+                    itemCount = sim.GetItemCount(mechId, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
+                    inventoryChassis.Add(mechId, itemCount);
+                    LogDebug($"New key: {mechId} ({itemCount})");
                 }
                 else
                 {
-                    itemCount = sim.GetItemCount(id, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
-                    inventorySalvage[id] += itemCount;
-                    LogDebug($"New value for {id} ({itemCount})");
+                    // I don't think this is ever reached
+                    itemCount = sim.GetItemCount(mechId, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
+                    inventoryChassis[mechId] += itemCount;
+                    LogDebug($"New value for {mechId} ({itemCount})");
                 }
             }
 
-            LogDebug($"inventorySalvage ({inventorySalvage.Count})");
-
-            SalvageFromContract = inventorySalvage;
+            LogDebug($"Chassis in inventory ({inventoryChassis.Count})");
+            SalvageFromContract = inventoryChassis;
             HasBeenBuilt.Clear();
             LogDebug("SimulateContractSalvage");
             SimulateContractSalvage();
@@ -179,7 +192,6 @@ namespace SalvageOperations
         // MEAT
         private static SimGameEventResult[] GetBuildMechEventResult(SimGameState simGame, MechDef mechDef)
         {
-            //LogDebug($"Generate Event Result for {mechDef.Chassis.Description.UIName}");
             var stats = new List<SimGameStat>();
             // adds the flatpacked mech
             stats.Add(new SimGameStat(GetItemStatID(mechDef.ChassisID, "MechDef"), 1));
@@ -221,10 +233,8 @@ namespace SalvageOperations
             // there could still be parts remaining that we need to delete from other variants
             var otherMechParts = new Dictionary<string, int>();
             var numPartsRemaining = simGame.Constants.Story.DefaultMechPartMax - mechPartCount;
-            //Logger.Log($"numPartsRemaining ({numPartsRemaining})");
             if (numPartsRemaining > 0)
             {
-                //Logger.Log($"numPartsRemaining ({numPartsRemaining})");
                 // delete 1 from each variant until we've gotten all the parts that we need deleted
                 var matchingVariants = GetAllMatchingVariants(simGame.DataManager, mechDef);
                 matchingVariants = ExcludeVariants(matchingVariants);
@@ -243,12 +253,9 @@ namespace SalvageOperations
                             if (!otherMechParts.ContainsKey(variant.Description.Id))
                                 otherMechParts[variant.Description.Id] = 0;
 
-                            //if (otherMechParts[variant.Description.Id] != parts)
-                            //{
                             otherMechParts[variant.Description.Id]++;
                             numPartsRemaining--;
                             partsRemoved++;
-                            //}
 
                             if (numPartsRemaining <= 0)
                                 break;
@@ -302,11 +309,6 @@ namespace SalvageOperations
 
             if (Settings.ExcludeVariantsById)
                 variants = ExcludeVariants(variants);
-            //}
-            //else //if
-            //{
-            //    // do stuff to a global build with exceptions?
-            //}
 
             MechDef highestVariant = null;
             int mostParts = 0;
@@ -329,19 +331,31 @@ namespace SalvageOperations
                     mostParts = variantParts[variant.Description.Id];
                 }
 
-                HBSLog.Log($"{variant.Description.Id} has {variantParts[variant.Description.Id]} pieces, highest {mostParts}");
+                HBSLog.Log($"{variant.Description.Id} has {variantParts[variant.Description.Id]} parts, highest {mostParts}");
             }
 
+            if (TriggeredVariant != null && !variantParts.ContainsKey(TriggeredVariant.Description.Id))
+            {
+                LogDebug("Add back triggered");
+                variantParts.Add(TriggeredVariant.Description.Id, GetMechParts(simGame, TriggeredVariant));
+            }
+
+            // if there are insufficient parts after exclusions
             if (highestVariant == null ||
                 variantParts.Values.Sum() < UnityGameInstance.BattleTechGame.Simulation.Constants.Story.DefaultMechPartMax)
+            {
+                LogDebug("Insufficient parts to complete build");
                 return;
+            }
+
+            // force our triggered variant to #1
+            const int artificialInflation = 1_000_000;
+            if (TriggeredVariant != null && variantParts.ContainsKey(TriggeredVariant.Description.Id))
+                variantParts[TriggeredVariant.Description.Id] += artificialInflation;
 
             // build the result set
             int optionIdx = 0;
-
             var options = new SimGameEventOption[Math.Min(4, variantParts.Count + 1)];
-            bool variantAlreadyListed = false;
-
             foreach (var variantKVP in variantParts.OrderByDescending(key => key.Value))
             {
                 var variant = variantKVP.Key;
@@ -349,47 +363,17 @@ namespace SalvageOperations
 
                 if (optionIdx > 2)
                 {
-                    if (TriggeredVariant != null && !variantAlreadyListed)
-                    {
-                        LogDebug($"Triggered build {TriggeredVariant.Description.Id} doesn't appear, placing it first");
-                        //LogDebug(options[0].ResultSets[0].Description.Details);
-                        //LogDebug($"{TriggeredVariant.Description.Id}: {options[0].ResultSets[0].Description.Details.Contains(TriggeredVariant.Description.Id)}");
-
-                        if (!options[0].ResultSets[0].Description.Details.Contains(TriggeredVariant.Description.Id))
-                        {
-                            LogDebug("Moving options down");
-                            // move options 0 and 1, to 1 and 2
-                            //var tempOption = options[1];
-                            //options[1] = options[0];
-                            //options[2] = tempOption;
-
-                            var mechId = TriggeredVariant.Description.Id;
-                            options[0] = new SimGameEventOption
-                            {
-                                Description = new BaseDescriptionDef(mechId, $"Build the {mechDef.Description.UIName} ({variantParts[mechId]} Parts)", mechId, ""),
-                                RequirementList = null,
-                                ResultSets = new[]
-                                {
-                                    new SimGameEventResultSet
-                                    {
-                                        Description = new BaseDescriptionDef(mechId, mechId, $"You tell Yang that you want him to build the [[DM.MechDefs[{mechId}],{{DM.MechDefs[{mechId}].Description.UIName}}]] and his eyes light up. \"I can't wait to get started.\"\r\n\r\nHe starts to move behind the pile of scrap, then calls out, \"Oh, and don't forget to submit a work order to 'Ready' the 'Mech when you want to get started on the refit. Remember, the less pieces of this variant you gave me, the longer it will take to get to full working order.\"", ""),
-                                        Weight = 100,
-                                        Results = GetBuildMechEventResult(simGame, mechDef)
-                                    }
-                                }
-                            };
-                            //LogDebug(options[0].ResultSets[0].Description.Details);
-                        }
-                        else
-                            LogDebug("Already in the list");
-                    }
-
                     LogDebug("Had more than 3 options, truncating at 3");
                     HBSLog.Log("Had more than 3 options, truncating at 3");
                     break;
                 }
 
+                // remove artificialInflation so it displays nicely
                 LogDebug($"Building event option {optionIdx} for {variant}");
+                if (TriggeredVariant != null && variant == TriggeredVariant.Description.Id)
+                {
+                    variantParts[variant] -= artificialInflation;
+                }
 
                 options[optionIdx] = new SimGameEventOption
                 {
@@ -399,30 +383,19 @@ namespace SalvageOperations
                     {
                         new SimGameEventResultSet
                         {
-                            Description = new BaseDescriptionDef(variant, variant, $"You tell Yang that you want him to build the [[DM.MechDefs[{variant}],{{DM.MechDefs[{variant}].Description.UIName}}]] and his eyes light up. \"I can't wait to get started.\"\r\n\r\nHe starts to move behind the pile of scrap, then calls out, \"Oh, and don't forget to submit a work order to 'Ready' the 'Mech when you want to get started on the refit. Remember, the less pieces of this variant you gave me, the longer it will take to get to full working order.\"", ""),
+                            Description = new BaseDescriptionDef(variant, variant, $"You tell Yang that you want him to build the [[DM.MechDefs[{variant}],{{DM.MechDefs[{variant}].Description.UIName}}]] and his eyes light up. \"I can't wait to get started.\"\r\n\r\nHe starts to move behind the pile of scrap, then calls out, \"Oh, and don't forget to submit a work order to 'Ready' the 'Mech when you want to get started on the refit. Remember, the less parts of this variant we use, the longer it will take to get to full working order.\"", ""),
                             Weight = 100,
                             Results = GetBuildMechEventResult(simGame, mechDef)
                         }
                     }
                 };
 
-                // global build
-                if (TriggeredVariant != null)
-                {
-                    //LogDebug($"Comparing {variant} and {TriggeredVariant.Description.Id}");
-                    if (variant == TriggeredVariant.Description.Id)
-                    {
-                        //LogDebug("variant == TriggeredVariant.Description.Id, variantAlreadyListed = true");
-                        variantAlreadyListed = true;
-                    }
-                }
-
                 optionIdx++;
             }
 
             // add the option to not build anything, in last place
             // Length property - 1 for the last array element
-            options[optionIdx] = new SimGameEventOption
+            options[options.Length - 1] = new SimGameEventOption
             {
                 Description = new BaseDescriptionDef("BuildNothing", "Tell Yang not to build anything right now.", "BuildNothing", ""),
                 RequirementList = null,
@@ -430,7 +403,7 @@ namespace SalvageOperations
                 {
                     new SimGameEventResultSet
                     {
-                        Description = new BaseDescriptionDef("BuildNothing", "BuildNothing", "Yang looks disappointed for a moment, then grins and shrugs, \"Saving these pieces up makes sense, I guess, never know when they might come in handy later on.\"", ""),
+                        Description = new BaseDescriptionDef("BuildNothing", "BuildNothing", "Yang looks disappointed for a moment, then grins and shrugs, \"Saving these parts up makes sense, I guess, never know when they might come in handy later on.\"", ""),
                         Weight = 100,
                         Results = new[]
                         {
@@ -451,33 +424,9 @@ namespace SalvageOperations
                 }
             };
 
-            // put the selected variant at the top regardless of part count
-            if (variantAlreadyListed)
-            {
-                var variantModel = Regex.Match(TriggeredVariant.Description.Id, @".+_.+_(.+)").Groups[1].Value;
-                LogDebug($"TriggeredVariant {TriggeredVariant.Description.Id} variantModel {variantModel}");
-                // add everything except the selected variant
-                var tempOptions = options.Where(option => option != null && !option.Description.Name.Contains(variantModel)).ToList();
-
-                // add the select variant
-                foreach (var option in options)
-                {
-                    if (option.Description.Name.Contains(variantModel))
-                        tempOptions.Insert(0, option);
-                }
-
-                LogDebug("Reordered options");
-                foreach (var option in tempOptions)
-                    LogDebug(option.Description.Name);
-
-                options = tempOptions.ToArray();
-            }
-
             TriggeredVariant = null;
-
             LogDebug("OPTIONS\n=======");
-            LogDebug(options[0].ResultSets[0].Description.Details);
-            //options.Where(option => option != null).Do(x => LogDebug(Regex.Match(x.ResultSets[0].Description.Details, @"mechdef_.+_(.+)]\.").Groups[1].ToString()));
+            options.Where(option => option != null).Do(x => LogDebug(Regex.Match(x.ResultSets[0].Description.Details, @"mechdef_.+_(.+)]\.").Groups[1].ToString()));
 
             // setup the event string based on the situation
             var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
@@ -520,32 +469,26 @@ namespace SalvageOperations
             var defaultMechPartMax = sim.Constants.Story.DefaultMechPartMax;
             var chassisParts = new Dictionary<string, int>();
 
-            // setup chassis pieces for the pieces that we received
+            // setup chassis parts for the parts that we received
             foreach (var mechID in mechParts.Keys)
             {
                 var mechDef = sim.DataManager.MechDefs.Get(mechID);
 
                 if (!chassisParts.ContainsKey(mechDef.Chassis.PrefabIdentifier))
                     chassisParts[mechDef.Chassis.PrefabIdentifier] = 0;
-
-                //   Logger.Log($"{mechID} has UIName {mechDef.Chassis.PrefabIdentifier}");
             }
 
             // try to build each chassis
             var prefabId = chassisParts.Keys.First();
 
-            //var prefabId = prefabs.First();
             LogDebug("prefabId " + prefabId);
 
-            // add chassis pieces that we already have
+            // add chassis parts that we already have
             var matchingMechDefs = GetAllMatchingVariants(sim.DataManager, prefabId);
 
             foreach (var mechDef in matchingMechDefs)
             {
                 chassisParts[prefabId] += GetMechParts(sim, mechDef);
-
-                //  Logger.Log(mechDef.Description.Id);
-                //  Logger.Log(chassisPieces[UIName].ToString());
             }
 
             // need a generic name for below
@@ -553,7 +496,7 @@ namespace SalvageOperations
             LogDebug($"{prefabId} has {chassisParts[prefabId]} pieces");
             if (chassisParts[prefabId] >= defaultMechPartMax)
             {
-                // has enough pieces to build a mech, generate popup
+                // has enough parts to build a mech, generate popup
                 LogDebug($"Generating popup for {prefabId}, adding {mechName} to list");
                 try
                 {

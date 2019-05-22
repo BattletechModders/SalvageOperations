@@ -2,7 +2,6 @@
 using Newtonsoft.Json;
 using UnityEngine;
 using System.Collections.Generic;
-using BattleTech;
 
 namespace SalvageOperations
 {
@@ -19,7 +18,6 @@ namespace SalvageOperations
         public List<string> ExcludedMechTags = new List<string>();
         public bool ExcludeVariantsById = true;
         public bool ExcludeVariantsByTag = true;
-
         public bool Debug = false;
 
         public static ModSettings ReadSettings(string json)
@@ -35,5 +33,4 @@ namespace SalvageOperations
             }
         }
     }
-
 }

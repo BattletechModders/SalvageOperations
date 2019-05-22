@@ -1,6 +1,8 @@
 using BattleTech.Save;
 using Harmony;
 
+// ReSharper disable InconsistentNaming
+
 namespace SalvageOperations.Patches
 {
     // maybe not needed TODO check it out

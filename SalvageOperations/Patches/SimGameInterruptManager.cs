@@ -3,6 +3,8 @@ using BattleTech;
 using BattleTech.UI;
 using Harmony;
 
+// ReSharper disable InconsistentNaming
+
 namespace SalvageOperations.Patches
 {
     // refresh the chassis widgets after popups close
@@ -14,8 +16,8 @@ namespace SalvageOperations.Patches
             var mechBayPanel = (MechBayPanel) UIManager.Instance.Find(x => x.IsType(typeof(MechBayPanel)));
             var sim = UnityGameInstance.BattleTechGame.Simulation;
             var storageWidget = Traverse.Create(mechBayPanel).Field("storageWidget").GetValue<MechBayMechStorageWidget>();
-            
-            // TODO this throws nulls
+
+            // TODO this throws nulls maybe?
             if (!storageWidget.Visible) return;
             try
             {
