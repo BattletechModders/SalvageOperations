@@ -1,7 +1,7 @@
 {
 	"Name": "SalvageOperations",
 	"DLL": "SalvageOperations.dll",
-	"Version": "1.2.3",
+	"Version": "1.3.0",
 	"Description": "Changes how mech salvage works.",
 	"Author": "mpstark",
 	"Modified By": "gnivler and donZappo",
@@ -45,8 +45,7 @@
 			"mechdef_wyvern_WVE-6N",
 			"mechdef_hussar_HSR-300-D",
 			"mechdef_thorn_THE-F",
-			"mechdef_toro_TR-A-6",
-			"mechdef_hunchback_HBK-4G"
+			"mechdef_toro_TR-A-6"
 		],
 		"ExcludedMechTags": [
 			"unit_hero"
