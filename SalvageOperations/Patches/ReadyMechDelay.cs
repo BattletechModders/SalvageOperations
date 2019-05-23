@@ -27,7 +27,7 @@ namespace SalvageOperations.Patches
             } while (i < Sim.Constants.Story.DefaultMechPartMax + 1);
 
             readyTimeState = Sim.Constants.Story.MechReadyTime;
-            Sim.Constants.Story.MechReadyTime = (int)(MechReadyTime * Main.Settings.ReadyMechDelayFactor * (Sim.Constants.Story.DefaultMechPartMax + 1 - maxParts));
+            Sim.Constants.Story.MechReadyTime = (int) (MechReadyTime * Main.Settings.ReadyMechDelayFactor * (Sim.Constants.Story.DefaultMechPartMax + 1 - maxParts));
         }
 
         public static void Postfix()
@@ -43,7 +43,7 @@ namespace SalvageOperations.Patches
         private static readonly int MechReadyTime = Sim.Constants.Story.MechReadyTime;
         private static int readyTimeState;
 
-        public static void Prefix(SimGameState __instance, string id)
+        public static void Prefix(SimGameState __instance, string id, int baySlot)
         {
             int maxParts = Sim.Constants.Story.DefaultMechPartMax;
             int i = 1;
@@ -59,12 +59,17 @@ namespace SalvageOperations.Patches
             } while (i < Sim.Constants.Story.DefaultMechPartMax + 1);
 
             readyTimeState = __instance.Constants.Story.MechReadyTime;
-            __instance.Constants.Story.MechReadyTime = (int)(MechReadyTime * Main.Settings.ReadyMechDelayFactor * (Sim.Constants.Story.DefaultMechPartMax + 1 - maxParts));
+            __instance.Constants.Story.MechReadyTime = (int) (MechReadyTime * Main.Settings.ReadyMechDelayFactor * (Sim.Constants.Story.DefaultMechPartMax + 1 - maxParts));
         }
 
-        public static void Postfix(SimGameState __instance)
+        public static void Postfix(SimGameState __instance, string id, int baySlot)
         {
             __instance.Constants.Story.MechReadyTime = readyTimeState;
+            var mech = __instance.ReadyingMechs[baySlot];
+            foreach (var component in mech.Inventory)
+            {
+                component.DamageLevel = ComponentDamageLevel.Destroyed;
+            }
         }
     }
 

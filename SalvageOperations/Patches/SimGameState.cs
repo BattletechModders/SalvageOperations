@@ -1,16 +1,70 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using BattleTech;
 using BattleTech.StringInterpolation;
 using Harmony;
 using Localize;
 using UnityEngine;
+using Random = System.Random;
 
 // ReSharper disable InconsistentNaming
 // ReSharper disable UnusedMember.Global
 
 namespace SalvageOperations.Patches
 {
+    // assemble mechs in variable condition
+    [HarmonyPatch(typeof(SimGameState), "CompleteWorkOrder")]
+    public static class SimGameState_CompleteWorkOrder_Patch
+    {
+        private static Random rng = new Random();
+        private static readonly SimGameState sim = UnityGameInstance.BattleTechGame.Simulation;
+
+        public static void Prefix(SimGameState __instance, WorkOrderEntry entry)
+        {
+            if (entry.Type == WorkOrderType.MechLabReadyMech)
+            {
+                var workOrder = entry as WorkOrderEntry_MechLab;
+
+                // add the default loadout the mech
+                var mech = sim.ReadyingMechs.Values.First(value => value.GUID == workOrder.MechID);
+                Traverse.Create(mech).Field("inventory").SetValue(sim.DataManager.MechDefs.Get(mech.Description.Id).Inventory);
+
+                foreach (var component in mech.Inventory)
+                {
+                    if (rng.NextDouble() <= Main.Settings.DestroyedChance)
+                    {
+                        if (rng.NextDouble() <= Main.Settings.NonFunctionalChance)
+                        {
+                            component.DamageLevel = ComponentDamageLevel.NonFunctional;
+                            continue;
+                        }
+
+                        component.DamageLevel = ComponentDamageLevel.Destroyed;
+                        continue;
+                    }
+
+                    component.DamageLevel = ComponentDamageLevel.Functional;
+                }
+
+                var limbs = new List<LocationLoadoutDef>()
+                {
+                    mech.LeftArm,
+                    mech.RightArm,
+                    mech.LeftLeg,
+                    mech.RightLeg,
+                    mech.LeftTorso,
+                    mech.RightTorso,
+                    mech.CenterTorso,
+                    mech.Head
+                };
+
+                mech.MechTags.Add("SO_AssembledWithComponents");
+                limbs.Do(x => x.CurrentInternalStructure *= Math.Max((float) rng.NextDouble(), Main.Settings.StructureDamageLimit));
+            }
+        }
+    }
+
     // trigger hotkey
     [HarmonyPatch(typeof(SimGameState), "Update")]
     public static class SimGameState_Update_Patch
@@ -19,10 +73,7 @@ namespace SalvageOperations.Patches
         {
             var hotkey = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(Main.Settings.Hotkey);
             if (hotkey)
-            {
-                // Logger.Log("Hotkey Triggered");
                 Main.GlobalBuild();
-            }
         }
     }
 
@@ -50,7 +101,7 @@ namespace SalvageOperations.Patches
             // TODO: what happens when you buy multiple pieces from the store at once and can build for each?
             // not in contract, just try to build with what we have
             if (!Main.Salvaging)
-            //if (!__instance.CompanyTags.Contains("SO_Salvaging"))
+                //if (!__instance.CompanyTags.Contains("SO_Salvaging"))
             {
                 //          Main.ExcludedVariantHolder = __instance.DataManager.MechDefs.Get(id);
                 Main.TryBuildMechs(new Dictionary<string, int> {{id, 1}});
@@ -67,7 +118,7 @@ namespace SalvageOperations.Patches
         {
             Main.ContractStart();
             Main.Salvaging = true;
-           // __instance.CompanyTags.Add("SO_Salvaging");
+            // __instance.CompanyTags.Add("SO_Salvaging");
             Main.HasBeenBuilt.Clear();
         }
 
@@ -82,6 +133,7 @@ namespace SalvageOperations.Patches
                     Main.TryBuildMechs(new Dictionary<string, int> {{mechID, 1}});
                 }
             }
+
             Main.Salvaging = false;
             //__instance.CompanyTags.Remove("SO_Salvaging");
             Main.ContractEnd();

@@ -21,9 +21,9 @@ namespace SalvageOperations
         internal static ILog HBSLog;
         internal static ModSettings Settings;
         private static string modDir;
-        
+
         internal static bool IsResolvingContract { get; private set; }
-        
+
         internal static Dictionary<string, int> SalvageFromContract = new Dictionary<string, int>();
         internal static readonly List<string> HasBeenBuilt = new List<string>();
         internal static bool Salvaging;
@@ -74,7 +74,6 @@ namespace SalvageOperations
 
         private static List<MechDef> GetAllMatchingVariants(DataManager dataManager, string prefabId)
         {
-            //LogDebug($"GetAllMatchingVariants: {prefabId}");
             var variants = new List<MechDef>();
 
             dataManager.MechDefs
@@ -103,10 +102,10 @@ namespace SalvageOperations
                 return new List<MechDef>() {TriggeredVariant};
             }
 
+            // remove all variants appearing in the exclusion list
             var allowedVariants = new List<MechDef>(variants);
             foreach (var variant in variants.Where(x => x != null))
             {
-                // remove all variants appearing in the exclusion list
                 if (Settings.ExcludeVariantsById &&
                     Settings.ExcludedMechIds.Any(id => id == variant.Description.Id) ||
                     Settings.ExcludeVariantsByTag &&
@@ -117,13 +116,6 @@ namespace SalvageOperations
                 }
             }
 
-            // add back triggered variant
-            if (TriggeredVariant != null && !allowedVariants.Contains(TriggeredVariant))
-            {
-                LogDebug($">>> Adding back {TriggeredVariant.Description.Id}");
-                allowedVariants.Add(TriggeredVariant);
-            }
-
             return allowedVariants;
         }
 
@@ -132,10 +124,7 @@ namespace SalvageOperations
             return GetAllMatchingVariants(dataManager, mechDef.Chassis.PrefabIdentifier);
         }
 
-        private static string GetItemStatID(string id, string type)
-        {
-            return $"Item.{type}.{id}";
-        }
+        private static string GetItemStatID(string id, string type) => $"Item.{type}.{id}";
 
         internal static void SimulateContractSalvage()
         {
@@ -368,7 +357,7 @@ namespace SalvageOperations
                     break;
                 }
 
-                // remove artificialInflation so it displays nicely
+                // remove artificialInflation so it displays nicely (and doesn't give 1 miiiiillion mech parts)
                 LogDebug($"Building event option {optionIdx} for {variant}");
                 if (TriggeredVariant != null && variant == TriggeredVariant.Description.Id)
                 {
