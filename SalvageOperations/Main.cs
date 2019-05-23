@@ -83,6 +83,54 @@ namespace SalvageOperations
             return variants;
         }
 
+        internal static void RemoveSOTags(SimGameState __instance, string id)
+        {
+            // capture trailing the number on a string like SO_Built_mechDef_Blackjack-BJ1X_
+            var tags = __instance.CompanyTags.Where(tag => tag.Contains($"SO_Built_{id}"));
+
+            // find the highest numbered tag for this chassis and remove it
+            // this is intended to counter multiple mechs with the same chassis causing issues
+            var highest = 0;
+            foreach (var tag in tags)
+            {
+                // TODO maybe use a string split array for performance/simplicity?
+                var match = Regex.Match(tag, @"SO_Built_(mechDef_.+-.+)_(\d)$");
+                var number = int.Parse(match.Groups[2].ToString());
+                highest = number;
+            }
+
+            if (__instance.CompanyTags.Contains($"SO_Built_{id}_{highest}"))
+                __instance.CompanyTags.Remove($"SO_Built_{id}_{highest}");
+        }
+
+        internal static void AddSOTags(SimGameState __instance, MechDef def)
+        {
+            var id = def.Description.Id;
+            var tags = __instance.CompanyTags.Where(tag => tag.Contains($"SO_Built_{id}"));
+            // capture trailing the number on a string like SO_Built_mechdef_locust_LCT-1E_1
+            // find the highest numbered tag for this chassis, increment and tag
+            // this is intended to counter multiple mechs with the same chassis causing issues
+            var highest = 0;
+            foreach (var tag in tags)
+            {
+                // TODO maybe use a string split array for performance/simplicity?
+                // not sure if this will throw on tag find failures, either
+                try
+                {
+                    var match = Regex.Match(tag, @"SO_Built_(mechDef_.+-.+)_(\d)$");
+                    var number = int.Parse(match.Groups[2].ToString());
+                    highest = number;
+                }
+                catch (Exception ex)
+                {
+                    Error(ex);
+                }
+            }
+
+            highest = highest == 0 ? 1 : highest + 1;
+            __instance.CompanyTags.Add($"SO_Built_{def.Description.Id}_{highest}");
+        }
+
         private static List<MechDef> ExcludeVariants(List<MechDef> variants)
         {
             // if it's an excluded variant it can only build with itself
@@ -193,15 +241,20 @@ namespace SalvageOperations
             // removes the parts from the mech we're building from inventory
             stats.Add(new SimGameStat(GetItemStatID(mechDef.Description.Id, "MECHPART"), -mechPartCount));
 
+            // TODO check if this is creating multiple tags per event/whatever/Problem One
+            // SO-chassisdef_locust_LCT-1M_1
+            // SO-chassisdef_locust_LCT-1S_2
+            // SO-chassisdef_locust_LCT-3V_1
+
             // Record how many parts were used to assemble the mech.
-            string tagName = $"SO-{mechDef.ChassisID}_{mechPartCount}";
+            string tagName = $"SO_PartsCounter_{mechDef.ChassisID}_{mechPartCount}";
             int maxParts = 0;
             string removeTagName = "Temp";
 
             int i = 1;
             do
             {
-                var tempTagName = $"SO-{mechDef.ChassisID}_{i}";
+                var tempTagName = $"SO_PartsCounter_{mechDef.ChassisID}_{i}";
                 if (simGame.CompanyTags.Contains(tempTagName))
                 {
                     maxParts = i;

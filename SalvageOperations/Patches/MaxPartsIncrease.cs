@@ -42,15 +42,6 @@ namespace SalvageOperations.Patches
         }
     }
 
-    [HarmonyPatch(typeof(SimGameState), "UnreadyMech")]
-    public static class SimGameState_UnreadyMech_Patch
-    {
-        public static void Prefix(SimGameState __instance, MechDef def)
-        {
-            def.Chassis.ChassisTags.Add("SO_Built");
-        }
-    }
-    
     //Correction for scrapping mechs for money.
     [HarmonyPatch(typeof(SimGameState), "ScrapMechPart")]
     public static class SimGameState_ScrapMechPart_Patch

@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using BattleTech;
 using BattleTech.StringInterpolation;
 using Harmony;
 using Localize;
 using UnityEngine;
+using static Logger;
 using Random = System.Random;
 
 // ReSharper disable InconsistentNaming
@@ -13,24 +15,60 @@ using Random = System.Random;
 
 namespace SalvageOperations.Patches
 {
+    [HarmonyPatch(typeof(SimGameState), "ScrapActiveMech")]
+    public static class SimGameState_ScrapActiveMech_Patch
+    {
+        public static void Prefix() => LogDebug("ScrapActiveMech prefix");
+
+        public static void Postfix(SimGameState __instance, MechDef def)
+        {
+            Main.RemoveSOTags(__instance, def.Description.Id);
+        }
+    }
+
+    [HarmonyPatch(typeof(SimGameState), "ScrapInactiveMech")]
+    public static class SimGameState_ScrapInactiveMech_Patch
+    {
+        public static void Prefix() => LogDebug("ScrapInactiveMech prefix");
+
+        public static void Postfix(SimGameState __instance, string id)
+        {
+            Main.RemoveSOTags(__instance, id);
+        }
+    }
+
+    [HarmonyPatch(typeof(SimGameState), "UnreadyMech")]
+    public static class SimGameState_UnreadyMech_Patch
+    {
+        public static void Prefix(SimGameState __instance, MechDef def)
+        {
+            LogDebug("UnreadyMech prefix");
+            var mechId = def.Description.Id;
+            Main.AddSOTags(__instance, def);
+        }
+
+    }
+
     // assemble mechs in variable condition
     [HarmonyPatch(typeof(SimGameState), "CompleteWorkOrder")]
     public static class SimGameState_CompleteWorkOrder_Patch
     {
         private static Random rng = new Random();
-        private static readonly SimGameState sim = UnityGameInstance.BattleTechGame.Simulation;
 
         public static void Prefix(SimGameState __instance, WorkOrderEntry entry)
         {
             if (entry.Type == WorkOrderType.MechLabReadyMech)
             {
                 var workOrder = entry as WorkOrderEntry_MechLab;
+                var mechDef = __instance.ReadyingMechs.Values.First(value => value.GUID == workOrder.MechID);
 
-                // add the default loadout the mech
-                var mech = sim.ReadyingMechs.Values.First(value => value.GUID == workOrder.MechID);
-                Traverse.Create(mech).Field("inventory").SetValue(sim.DataManager.MechDefs.Get(mech.Description.Id).Inventory);
+                // bail out if this mech has been readied before
+                if (__instance.CompanyTags.Contains($"SO_Built_{mechDef.Description.Id}"))
+                    return;
 
-                foreach (var component in mech.Inventory)
+                // add the default inventory for the mech
+                Traverse.Create(mechDef).Field("inventory").SetValue(__instance.DataManager.MechDefs.Get(mechDef.Description.Id).Inventory);
+                foreach (var component in mechDef.Inventory)
                 {
                     if (rng.NextDouble() <= Main.Settings.DestroyedChance)
                     {
@@ -47,20 +85,21 @@ namespace SalvageOperations.Patches
                     component.DamageLevel = ComponentDamageLevel.Functional;
                 }
 
-                var limbs = new List<LocationLoadoutDef>()
+                var limbs = new List<LocationLoadoutDef>
                 {
-                    mech.LeftArm,
-                    mech.RightArm,
-                    mech.LeftLeg,
-                    mech.RightLeg,
-                    mech.LeftTorso,
-                    mech.RightTorso,
-                    mech.CenterTorso,
-                    mech.Head
+                    mechDef.LeftArm,
+                    mechDef.RightArm,
+                    mechDef.LeftLeg,
+                    mechDef.RightLeg,
+                    mechDef.LeftTorso,
+                    mechDef.RightTorso,
+                    mechDef.CenterTorso,
+                    mechDef.Head
                 };
 
-                mech.MechTags.Add("SO_AssembledWithComponents");
                 limbs.Do(x => x.CurrentInternalStructure *= Math.Max((float) rng.NextDouble(), Main.Settings.StructureDamageLimit));
+                // add a tag to later check if this mech was readied here
+                Main.AddSOTags(__instance, mechDef);
             }
         }
     }
@@ -101,11 +140,7 @@ namespace SalvageOperations.Patches
             // TODO: what happens when you buy multiple pieces from the store at once and can build for each?
             // not in contract, just try to build with what we have
             if (!Main.Salvaging)
-                //if (!__instance.CompanyTags.Contains("SO_Salvaging"))
-            {
-                //          Main.ExcludedVariantHolder = __instance.DataManager.MechDefs.Get(id);
                 Main.TryBuildMechs(new Dictionary<string, int> {{id, 1}});
-            }
 
             return false;
         }
@@ -118,7 +153,6 @@ namespace SalvageOperations.Patches
         {
             Main.ContractStart();
             Main.Salvaging = true;
-            // __instance.CompanyTags.Add("SO_Salvaging");
             Main.HasBeenBuilt.Clear();
         }
 
@@ -129,13 +163,11 @@ namespace SalvageOperations.Patches
                 var mechDef = __instance.DataManager.MechDefs.Get(mechID);
                 if (!Main.HasBeenBuilt.Contains(mechDef.Description.Name))
                 {
-                    // Main.ExcludedVariantHolder = mechDef;
                     Main.TryBuildMechs(new Dictionary<string, int> {{mechID, 1}});
                 }
             }
 
             Main.Salvaging = false;
-            //__instance.CompanyTags.Remove("SO_Salvaging");
             Main.ContractEnd();
         }
     }
