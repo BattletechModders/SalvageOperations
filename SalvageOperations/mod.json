@@ -49,6 +49,6 @@
 		],
 		"ExcludedMechTags": [
 		],
-		"Debug": false
+		"Debug": true
 	}
 }

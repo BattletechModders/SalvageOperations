@@ -166,9 +166,31 @@ namespace SalvageOperations.Patches
     {
         public static void Postfix(SimGameState __instance)
         {
+            var Sim = UnityGameInstance.BattleTechGame.Simulation;
             var hotkey = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(Main.Settings.Hotkey);
             if (hotkey)
                 Main.GlobalBuild();
+            
+            
+            var hotkeyJ = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.F12);
+            if (hotkeyJ)
+            {
+                if (Sim != null)
+                {
+                    var sotags = Sim.CompanyTags.Where(tag => tag.Contains("SO-") || tag.Contains("SO_"));
+                    sotags.Do(tag => Sim.CompanyTags.Remove(tag));
+                }
+            }
+
+            var hotkeyK = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.K);
+            if (hotkeyK)
+            {
+                if (Sim != null)
+                {
+                    Sim.CompanyTags.Where(tag => tag.Contains("SO-") || tag.Contains("SO_")).Do(LogDebug);
+                }
+            }
+
         }
     }
 
@@ -207,7 +229,7 @@ namespace SalvageOperations.Patches
         {
             Main.ContractStart();
             Main.Salvaging = true;
-            Main.HasBeenBuilt.Clear();
+            Main.BuiltMechNames.Clear();
         }
 
         public static void Postfix(SimGameState __instance)
@@ -215,7 +237,7 @@ namespace SalvageOperations.Patches
             foreach (var mechID in Main.SalvageFromContract.Keys)
             {
                 var mechDef = __instance.DataManager.MechDefs.Get(mechID);
-                if (!Main.HasBeenBuilt.Contains(mechDef.Description.Name))
+                if (!Main.BuiltMechNames.Contains(mechDef.Description.Name))
                 {
                     Main.TryBuildMechs(new Dictionary<string, int> {{mechID, 1}});
                 }
