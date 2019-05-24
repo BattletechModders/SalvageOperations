@@ -12,9 +12,15 @@ namespace SalvageOperations.Patches
     {
         public static void Prefix(MechBayChassisUnitElement __instance)
         {
+            SimGameState sim = UnityGameInstance.BattleTechGame.Simulation;
             // if salvage mech icon is shift-clicked, force assembly checking on that chassis
             if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
             {
+                // are we clicking on an assembled mech?
+                // this causes problems since you can assemble a variant for which 
+                // you have no pieces, just an assembled inactive mech
+                if (__instance.PartsCount >= __instance.PartsMax)
+                    return;
                 Main.SalvageFromContract.Clear();
                 var chassisId = __instance.ChassisDef.Description.Id;
                 Logger.LogDebug($"chassisId selected: {chassisId}");

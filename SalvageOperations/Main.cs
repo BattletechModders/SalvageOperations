@@ -243,6 +243,7 @@ namespace SalvageOperations
             // SO-chassisdef_locust_LCT-3V_1
 
             // Record how many parts were used to assemble the mech.
+            // this is storing multiple tags, which is a problem for readying delays
             string tagName = $"SO_PartsCounter_{mechDef.ChassisID}_{mechPartCount}";
             int maxParts = 0;
             string removeTagName = "Temp";
