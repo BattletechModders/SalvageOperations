@@ -22,6 +22,8 @@ namespace SalvageOperations.Patches
 
         public static void Postfix(SimGameState __instance, MechDef def)
         {
+            // live mech so definitely going to lose the tag
+            LogDebug("ScrapActiveMech RemoveSOTags " + def.Description.Id);
             Main.RemoveSOTags(__instance, def.Description.Id);
         }
     }
@@ -29,24 +31,62 @@ namespace SalvageOperations.Patches
     [HarmonyPatch(typeof(SimGameState), "ScrapInactiveMech")]
     public static class SimGameState_ScrapInactiveMech_Patch
     {
-        public static void Prefix() => LogDebug("ScrapInactiveMech prefix");
-
         public static void Postfix(SimGameState __instance, string id)
         {
-            Main.RemoveSOTags(__instance, id);
+            // tags being removed incorrectly here is a big problems
+            // it fires when readying a mech
+            // it should only remove a tag when the inactive chassis
+            // is not mistaken for a live mech.  I think we can only count it..
+            id = id.Replace("chassisdef", "mechdef");
+            var chassisTags = __instance.CompanyTags.Count(tag => tag.Contains($"SO_Built_{id}"));
+            if (chassisTags > 0)
+            {
+                LogDebug($"ScrapInactiveMech chassisTags {chassisTags}");
+                // what's the highest tag number
+                var tags = __instance.CompanyTags.Where(tag => tag.Contains($"SO_Built_{id}"));
+                var highest = 0;
+                foreach (var tag in tags)
+                {
+                    var match = Regex.Match(tag, @"SO_Built_mechDef_.+-.+_(\d+)$", RegexOptions.IgnoreCase);
+                    var number = int.Parse(match.Groups[1].ToString());
+                    highest = number > highest ? number : highest;
+                }
+
+                // so if we have a higher tag number than mechs, it's a real inactive mech, untag
+                var numberOfTags = __instance.CompanyTags.Count(tag => tag.Contains($"SO_Built_{id}"));
+
+                // count the number of active mechs appearing in the tags
+                // TODO does this have to include inactive mechs?
+                var numberOfMechs = __instance.ActiveMechs.Count(def => tags.Any(x => x.Contains($"SO_Built_{def.Value.Description.Id}")));
+                LogDebug($"numMechs {numberOfMechs} numberOfTags {numberOfTags}");
+                if (numberOfTags < numberOfMechs)
+                {
+                    LogDebug("ScrapInactiveMech RemoveSOTags " + id);
+                    Main.RemoveSOTags(__instance, id);
+                }
+            }
         }
     }
 
-    [HarmonyPatch(typeof(SimGameState), "UnreadyMech")]
-    public static class SimGameState_UnreadyMech_Patch
+    [HarmonyPatch(typeof(Shop), "SellInventoryItem")]
+    [HarmonyPatch(new Type[] {typeof(ShopDefItem)})]
+    public class Shop_SellInventoryItem_Patch
     {
-        public static void Prefix(SimGameState __instance, MechDef def)
+        public static void Postfix(Shop __instance, ShopDefItem item)
         {
-            LogDebug("UnreadyMech prefix");
-            var mechId = def.Description.Id;
-            Main.AddSOTags(__instance, def);
-        }
+            LogDebug("Shop sell");
 
+            // see if we have a tag for the mech being sold
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            if (item.Type == ShopItemType.Mech)
+            {
+                if (sim.CompanyTags.Any(tag => tag.Contains(item.ID.Replace("chassisdef", "mechdef"))))
+                {
+                    LogDebug("SellInventoryItem RemoveSOTags");
+                    Main.RemoveSOTags(sim, item.ID.Replace("chassisdef", "mechdef"));
+                }
+            }
+        }
     }
 
     // assemble mechs in variable condition
@@ -55,19 +95,51 @@ namespace SalvageOperations.Patches
     {
         private static Random rng = new Random();
 
-        public static void Prefix(SimGameState __instance, WorkOrderEntry entry)
+        public static void Postfix(SimGameState __instance, WorkOrderEntry entry)
         {
-            if (entry.Type == WorkOrderType.MechLabReadyMech)
+            if (entry.Type != WorkOrderType.MechLabReadyMech) return;
+            var workOrder = entry as WorkOrderEntry_MechLab;
+            // have to find the GUID of the real mech
+            var mechDef = __instance.ActiveMechs.Values.First(value => value.GUID == workOrder.MechID);
+
+            // preventing this from re-running when it's been done once
+            // if there are existing tags for this chassis...
+            var chassisTags = __instance.CompanyTags.Count(tag => tag.Contains(mechDef.Description.Id));
+
+            // minus 1 because this chassis was just added to ActiveMechs
+            var numMechs = Math.Max(0, __instance.ActiveMechs.Count(def => __instance.CompanyTags.Any(tag => tag.Contains(def.Value.Description.Id))) - 1);
+
+            // only add a tag if this mech is untagged... which we guess at by counting?!
+            if (numMechs >= chassisTags)
             {
-                var workOrder = entry as WorkOrderEntry_MechLab;
-                var mechDef = __instance.ReadyingMechs.Values.First(value => value.GUID == workOrder.MechID);
+                LogDebug("WorkOrderEntry AddSOTags");
+                Main.AddSOTags(__instance, mechDef);
+            }
 
-                // bail out if this mech has been readied before
-                if (__instance.CompanyTags.Contains($"SO_Built_{mechDef.Description.Id}"))
-                    return;
+            LogDebug($"numMechs {numMechs} tags {chassisTags}");
+            if (chassisTags <= numMechs)
+            {
+                // optionally damage the mech structure
+                if (Main.Settings.StructureDamageLimit > 0)
+                {
+                    var limbs = new List<LocationLoadoutDef>
+                    {
+                        mechDef.LeftArm,
+                        mechDef.RightArm,
+                        mechDef.LeftLeg,
+                        mechDef.RightLeg,
+                        mechDef.LeftTorso,
+                        mechDef.RightTorso,
+                        mechDef.CenterTorso,
+                        mechDef.Head
+                    };
 
-                // add the default inventory for the mech
+                    limbs.Do(x => x.CurrentInternalStructure *= Math.Max((float) rng.NextDouble(), Main.Settings.StructureDamageLimit));
+                }
+
+                // add the default inventory for the mech and damage the components optionally
                 Traverse.Create(mechDef).Field("inventory").SetValue(__instance.DataManager.MechDefs.Get(mechDef.Description.Id).Inventory);
+                if (Main.Settings.DestroyedChance <= 0) return;
                 foreach (var component in mechDef.Inventory)
                 {
                     if (rng.NextDouble() <= Main.Settings.DestroyedChance)
@@ -84,22 +156,6 @@ namespace SalvageOperations.Patches
 
                     component.DamageLevel = ComponentDamageLevel.Functional;
                 }
-
-                var limbs = new List<LocationLoadoutDef>
-                {
-                    mechDef.LeftArm,
-                    mechDef.RightArm,
-                    mechDef.LeftLeg,
-                    mechDef.RightLeg,
-                    mechDef.LeftTorso,
-                    mechDef.RightTorso,
-                    mechDef.CenterTorso,
-                    mechDef.Head
-                };
-
-                limbs.Do(x => x.CurrentInternalStructure *= Math.Max((float) rng.NextDouble(), Main.Settings.StructureDamageLimit));
-                // add a tag to later check if this mech was readied here
-                Main.AddSOTags(__instance, mechDef);
             }
         }
     }
@@ -137,8 +193,6 @@ namespace SalvageOperations.Patches
                 return false;
             }
 
-            // TODO: what happens when you buy multiple pieces from the store at once and can build for each?
-            // not in contract, just try to build with what we have
             if (!Main.Salvaging)
                 Main.TryBuildMechs(new Dictionary<string, int> {{id, 1}});
 

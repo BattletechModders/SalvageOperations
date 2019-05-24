@@ -85,7 +85,7 @@ namespace SalvageOperations
 
         internal static void RemoveSOTags(SimGameState __instance, string id)
         {
-            // capture trailing the number on a string like SO_Built_mechDef_Blackjack-BJ1X_
+            // capture trailing the number on a string like SO_Built_mechdef_locust_LCT-1E_1
             var tags = __instance.CompanyTags.Where(tag => tag.Contains($"SO_Built_{id}"));
 
             // find the highest numbered tag for this chassis and remove it
@@ -94,9 +94,9 @@ namespace SalvageOperations
             foreach (var tag in tags)
             {
                 // TODO maybe use a string split array for performance/simplicity?
-                var match = Regex.Match(tag, @"SO_Built_(mechDef_.+-.+)_(\d)$");
-                var number = int.Parse(match.Groups[2].ToString());
-                highest = number;
+                var match = Regex.Match(tag, @"SO_Built_mechDef_.+-.+_(\d+)$", RegexOptions.IgnoreCase);
+                var number = int.Parse(match.Groups[1].ToString());
+                highest = number > highest ? number : highest;
             }
 
             if (__instance.CompanyTags.Contains($"SO_Built_{id}_{highest}"))
@@ -107,7 +107,7 @@ namespace SalvageOperations
         {
             var id = def.Description.Id;
             var tags = __instance.CompanyTags.Where(tag => tag.Contains($"SO_Built_{id}"));
-            // capture trailing the number on a string like SO_Built_mechdef_locust_LCT-1E_1
+
             // find the highest numbered tag for this chassis, increment and tag
             // this is intended to counter multiple mechs with the same chassis causing issues
             var highest = 0;
@@ -115,18 +115,13 @@ namespace SalvageOperations
             {
                 // TODO maybe use a string split array for performance/simplicity?
                 // not sure if this will throw on tag find failures, either
-                try
-                {
-                    var match = Regex.Match(tag, @"SO_Built_(mechDef_.+-.+)_(\d)$");
-                    var number = int.Parse(match.Groups[2].ToString());
-                    highest = number;
-                }
-                catch (Exception ex)
-                {
-                    Error(ex);
-                }
+
+                var match = Regex.Match(tag, @"SO_Built_mechDef_.+-.+_(\d+)$", RegexOptions.IgnoreCase);
+                var number = int.Parse(match.Groups[1].ToString());
+                highest = number > highest ? number : highest;
             }
 
+            // make it a 1 if it's still a 0
             highest = highest == 0 ? 1 : highest + 1;
             __instance.CompanyTags.Add($"SO_Built_{def.Description.Id}_{highest}");
         }
@@ -199,6 +194,7 @@ namespace SalvageOperations
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
             var inventoryChassis = new Dictionary<string, int>();
+
             var inventory = sim.GetAllInventoryMechDefs();
             foreach (var chassis in inventory)
             {
@@ -230,10 +226,10 @@ namespace SalvageOperations
         private static SimGameEventResult[] GetBuildMechEventResult(SimGameState simGame, MechDef mechDef)
         {
             var stats = new List<SimGameStat>();
+
             // adds the flatpacked mech
             stats.Add(new SimGameStat(GetItemStatID(mechDef.ChassisID, "MechDef"), 1));
             mechDef.Chassis.ChassisTags.Add("SO_Built");
-
             var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
             var mechPartCount = GetMechParts(simGame, mechDef);
             mechPartCount = Math.Min(mechPartCount, defaultMechPartMax);
@@ -253,6 +249,7 @@ namespace SalvageOperations
 
             int i = 1;
             do
+
             {
                 var tempTagName = $"SO_PartsCounter_{mechDef.ChassisID}_{i}";
                 if (simGame.CompanyTags.Contains(tempTagName))
@@ -274,6 +271,7 @@ namespace SalvageOperations
 
             // there could still be parts remaining that we need to delete from other variants
             var otherMechParts = new Dictionary<string, int>();
+
             var numPartsRemaining = simGame.Constants.Story.DefaultMechPartMax - mechPartCount;
             if (numPartsRemaining > 0)
             {
@@ -348,11 +346,11 @@ namespace SalvageOperations
             var variantParts = new Dictionary<string, int>();
 
             var variants = GetAllMatchingVariants(simGame.DataManager, prefabId);
-
             if (Settings.ExcludeVariantsById)
                 variants = ExcludeVariants(variants);
 
             MechDef highestVariant = null;
+
             int mostParts = 0;
             foreach (var variant in variants)
             {
@@ -397,6 +395,7 @@ namespace SalvageOperations
 
             // build the result set
             int optionIdx = 0;
+
             var options = new SimGameEventOption[Math.Min(4, variantParts.Count + 1)];
             foreach (var variantKVP in variantParts.OrderByDescending(key => key.Value))
             {
@@ -465,7 +464,6 @@ namespace SalvageOperations
                     }
                 }
             };
-
             TriggeredVariant = null;
             LogDebug("OPTIONS\n=======");
             options.Where(option => option != null).Do(x => LogDebug(Regex.Match(x.ResultSets[0].Description.Details, @"mechdef_.+_(.+)]\.").Groups[1].ToString()));
@@ -509,6 +507,7 @@ namespace SalvageOperations
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
             var defaultMechPartMax = sim.Constants.Story.DefaultMechPartMax;
+
             var chassisParts = new Dictionary<string, int>();
 
             // setup chassis parts for the parts that we received
@@ -522,12 +521,10 @@ namespace SalvageOperations
 
             // try to build each chassis
             var prefabId = chassisParts.Keys.First();
-
             LogDebug("prefabId " + prefabId);
 
             // add chassis parts that we already have
             var matchingMechDefs = GetAllMatchingVariants(sim.DataManager, prefabId);
-
             foreach (var mechDef in matchingMechDefs)
             {
                 chassisParts[prefabId] += GetMechParts(sim, mechDef);

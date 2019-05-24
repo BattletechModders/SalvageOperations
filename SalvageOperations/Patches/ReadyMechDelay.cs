@@ -76,20 +76,18 @@ namespace SalvageOperations.Patches
     [HarmonyPatch(typeof(SimGameState), "ML_ReadyMech")]
     public class SimGameState_ML_ReadyMech_Patch
     {
-        private static readonly SimGameState Sim = UnityGameInstance.BattleTechGame.Simulation;
-
-        public static void Postfix(WorkOrderEntry_ReadyMech order)
+        public static void Postfix(SimGameState __instance, WorkOrderEntry_ReadyMech order)
         {
             string id = order.Mech.Description.Id;
-            int maxParts = Sim.Constants.Story.DefaultMechPartMax;
+            int maxParts = __instance.Constants.Story.DefaultMechPartMax;
             int i = 1;
             do
             {
                 var tempTagName = $"SO-{id}_{i}";
-                if (Sim.CompanyTags.Contains(tempTagName))
+                if (__instance.CompanyTags.Contains(tempTagName))
                 {
                     maxParts = i;
-                    Sim.CompanyTags.Remove(tempTagName);
+                    __instance.CompanyTags.Remove(tempTagName);
                 }
 
                 i++;
