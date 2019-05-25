@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using BattleTech;
 using BattleTech.StringInterpolation;
@@ -33,43 +34,35 @@ namespace SalvageOperations.Patches
     {
         public static void Postfix(SimGameState __instance, string id)
         {
-            // tags being removed incorrectly here is a big problems
             // it fires when readying a mech
-            // it should only remove a tag when the inactive chassis
-            // is not mistaken for a live mech.  I think we can only count it..
-            id = id.Replace("chassisdef", "mechdef");
-            var chassisTags = __instance.CompanyTags.Count(tag => tag.Contains($"SO_Built_{id}"));
-            if (chassisTags > 0)
-            {
-                LogDebug($"ScrapInactiveMech chassisTags {chassisTags}");
-                // what's the highest tag number
-                var tags = __instance.CompanyTags.Where(tag => tag.Contains($"SO_Built_{id}"));
-                var highest = 0;
-                foreach (var tag in tags)
-                {
-                    var match = Regex.Match(tag, @"SO_Built_mechDef_.+-.+_(\d+)$", RegexOptions.IgnoreCase);
-                    var number = int.Parse(match.Groups[1].ToString());
-                    highest = number > highest ? number : highest;
-                }
-
-                // so if we have a higher tag number than mechs, it's a real inactive mech, untag
-                var numberOfTags = __instance.CompanyTags.Count(tag => tag.Contains($"SO_Built_{id}"));
-
-                // count the number of active mechs appearing in the tags
-                // TODO does this have to include inactive mechs?
-                var numberOfMechs = __instance.ActiveMechs.Count(def => tags.Any(x => x.Contains($"SO_Built_{def.Value.Description.Id}")));
-                LogDebug($"numMechs {numberOfMechs} numberOfTags {numberOfTags}");
-                if (numberOfTags < numberOfMechs)
-                {
-                    LogDebug("ScrapInactiveMech RemoveSOTags " + id);
-                    Main.RemoveSOTags(__instance, id);
-                }
-            }
+            // it should only remove a PartsCounter tag 
+            //var mechId = id.Replace("chassisdef", "mechdef");
+            //var chassisTags = __instance.CompanyTags.Count(tag => tag.Contains($"SO_PartsCounter_{mechId}"));
+            //if (chassisTags > 0)
+            //{
+            //    LogDebug($"ScrapInactiveMech chassisTags {chassisTags}");
+            //
+            //    var pattern = @"SO_PartsCounter_mechdef_.+-.+_(\d+)_(\d+)$";
+            //    var highestParts = 0;
+            //    var index = 0;
+            //    foreach (var tag in __instance.CompanyTags.Where(tag => tag.Contains($"SO_PartsCounter_{mechId}")))
+            //    {
+            //        var indexTag = int.Parse(Regex.Match(tag, pattern, RegexOptions.IgnoreCase).Groups[1].ToString());
+            //        var partsTag = int.Parse(Regex.Match(tag, pattern, RegexOptions.IgnoreCase).Groups[2].ToString());
+            //        if (partsTag > highestParts)
+            //        {
+            //            highestParts = partsTag;
+            //            index = indexTag;
+            //        }
+            //    }
+            //
+            //    __instance.CompanyTags.Remove($"SO_PartsCounter_{mechId}_{index}_{highestParts}");
+            //}
         }
     }
 
     [HarmonyPatch(typeof(Shop), "SellInventoryItem")]
-    [HarmonyPatch(new Type[] {typeof(ShopDefItem)})]
+    [HarmonyPatch(new[] {typeof(ShopDefItem)})]
     public class Shop_SellInventoryItem_Patch
     {
         public static void Postfix(Shop __instance, ShopDefItem item)
@@ -78,6 +71,7 @@ namespace SalvageOperations.Patches
 
             // see if we have a tag for the mech being sold
             var sim = UnityGameInstance.BattleTechGame.Simulation;
+            LogDebug("Selling type? " + item.Type);
             if (item.Type == ShopItemType.Mech)
             {
                 if (sim.CompanyTags.Any(tag => tag.Contains(item.ID.Replace("chassisdef", "mechdef"))))
@@ -104,58 +98,74 @@ namespace SalvageOperations.Patches
 
             // preventing this from re-running when it's been done once
             // if there are existing tags for this chassis...
-            var chassisTags = __instance.CompanyTags.Count(tag => tag.Contains(mechDef.Description.Id));
+            LogDebug($">>> SO_PartsCounter_{mechDef.Description.Id}");
+            var partsTags = __instance.CompanyTags.Count(tag => tag.Contains($"SO_PartsCounter_{mechDef.Description.Id}"));
 
-            // minus 1 because this chassis was just added to ActiveMechs
-            var numMechs = Math.Max(0, __instance.ActiveMechs.Count(def => __instance.CompanyTags.Any(tag => tag.Contains(def.Value.Description.Id))) - 1);
+            LogDebug("WorkOrder partsTags: " + partsTags);
+            // does this WorkOrder dictate a change in tags
+            // if one were just readied from parts it would have a PartsCounter
+            // there might be more PartsCounter tags for other inactive mechs though
 
-            // only add a tag if this mech is untagged... which we guess at by counting?!
-            if (numMechs >= chassisTags)
+            // if there are no PartsCounter tags for this chassis, it wasn't just assembled so don't tag it again
+            if (partsTags > 0)
             {
                 LogDebug("WorkOrderEntry AddSOTags");
                 Main.AddSOTags(__instance, mechDef);
             }
 
-            LogDebug($"numMechs {numMechs} tags {chassisTags}");
-            if (chassisTags <= numMechs)
+            // TODO make readying delays reflect the worst inactive mech
+            // the PartsCounter not being removed makes the readying delay reflect the same mech until it's readied
+            // remove the worst PartsCounter tag since we use the worst to build
+            var pattern = @"SO_PartsCounter_mechdef_.+-.+_(\d+)_(\d+)$";
+            var highestParts = 0;
+            var index = 0;
+            foreach (var tag in __instance.CompanyTags.Where(tag => tag.Contains($"SO_PartsCounter_{mechDef.Description.Id}")))
             {
-                // optionally damage the mech structure
-                if (Main.Settings.StructureDamageLimit > 0)
-                {
-                    var limbs = new List<LocationLoadoutDef>
-                    {
-                        mechDef.LeftArm,
-                        mechDef.RightArm,
-                        mechDef.LeftLeg,
-                        mechDef.RightLeg,
-                        mechDef.LeftTorso,
-                        mechDef.RightTorso,
-                        mechDef.CenterTorso,
-                        mechDef.Head
-                    };
+                var tagIndex = int.Parse(Regex.Match(tag, pattern, RegexOptions.IgnoreCase).Groups[1].ToString());
+                var parts = int.Parse(Regex.Match(tag, pattern, RegexOptions.IgnoreCase).Groups[2].ToString());
 
-                    limbs.Do(x => x.CurrentInternalStructure *= Math.Max((float) rng.NextDouble(), Main.Settings.StructureDamageLimit));
+                if (parts > highestParts)
+                {
+                    highestParts = parts;
+                    index = tagIndex;
                 }
+            }
 
-                // add the default inventory for the mech and damage the components optionally
-                Traverse.Create(mechDef).Field("inventory").SetValue(__instance.DataManager.MechDefs.Get(mechDef.Description.Id).Inventory);
-                if (Main.Settings.DestroyedChance <= 0) return;
-                foreach (var component in mechDef.Inventory)
+            LogDebug($"SO_PartsCounter_{mechDef.Description.Id}_{index}_{highestParts}");
+            __instance.CompanyTags.Remove($"SO_PartsCounter_{mechDef.Description.Id}_{index}_{highestParts}");
+            
+            // optionally damage the mech structure
+            if (Main.Settings.StructureDamageLimit > 0)
+            {
+                var limbs = new List<LocationLoadoutDef>
                 {
-                    if (rng.NextDouble() <= Main.Settings.DestroyedChance)
-                    {
-                        if (rng.NextDouble() <= Main.Settings.NonFunctionalChance)
-                        {
-                            component.DamageLevel = ComponentDamageLevel.NonFunctional;
-                            continue;
-                        }
+                    mechDef.LeftArm, mechDef.RightArm,
+                    mechDef.LeftLeg, mechDef.RightLeg,
+                    mechDef.LeftTorso, mechDef.RightTorso,
+                    mechDef.CenterTorso, mechDef.Head
+                };
+            
+                limbs.Do(x => x.CurrentInternalStructure *= Math.Max((float) rng.NextDouble(), Main.Settings.StructureDamageLimit));
+            }
 
-                        component.DamageLevel = ComponentDamageLevel.Destroyed;
+            // add the default inventory for the mech and damage the components optionally
+            Traverse.Create(mechDef).Field("inventory").SetValue(__instance.DataManager.MechDefs.Get(mechDef.Description.Id).Inventory);
+            if (Main.Settings.DestroyedChance <= 0) return;
+            foreach (var component in mechDef.Inventory)
+            {
+                if (rng.NextDouble() <= Main.Settings.DestroyedChance)
+                {
+                    if (rng.NextDouble() <= Main.Settings.NonFunctionalChance)
+                    {
+                        component.DamageLevel = ComponentDamageLevel.NonFunctional;
                         continue;
                     }
 
-                    component.DamageLevel = ComponentDamageLevel.Functional;
+                    component.DamageLevel = ComponentDamageLevel.Destroyed;
+                    continue;
                 }
+
+                component.DamageLevel = ComponentDamageLevel.Functional;
             }
         }
     }
@@ -170,8 +180,7 @@ namespace SalvageOperations.Patches
             var hotkey = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(Main.Settings.Hotkey);
             if (hotkey)
                 Main.GlobalBuild();
-            
-            
+
             var hotkeyJ = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.F12);
             if (hotkeyJ)
             {
@@ -190,7 +199,6 @@ namespace SalvageOperations.Patches
                     Sim.CompanyTags.Where(tag => tag.Contains("SO-") || tag.Contains("SO_")).Do(LogDebug);
                 }
             }
-
         }
     }
 
@@ -201,11 +209,11 @@ namespace SalvageOperations.Patches
         public static bool Prefix(SimGameState __instance, string id)
         {
             // this function replaces the function from SimGameState, prefix return false
-            // just add the piece
+            // just add the part
             if (id != null)
                 __instance.AddItemStat(id, "MECHPART", false);
 
-            // we're in the middle of resolving a contract, add the piece to contract
+            // we're in the middle of resolving a contract, add the part to contract
             if (Main.IsResolvingContract)
             {
                 if (!Main.SalvageFromContract.ContainsKey(id))

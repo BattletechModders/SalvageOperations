@@ -238,45 +238,6 @@ namespace SalvageOperations
             // removes the parts from the mech we're building from inventory
             stats.Add(new SimGameStat(GetItemStatID(mechDef.Description.Id, "MECHPART"), -mechPartCount));
 
-            // TODO this is creating multiple tags per event/whatever/Problem One?
-            // SO-chassisdef_locust_LCT-1M_1
-            // SO-chassisdef_locust_LCT-1S_2
-            // SO-chassisdef_locust_LCT-3V_1
-
-            // Record how many parts were used to assemble the mech.
-            //if (BuiltMechNames.Contains(mechDef.Description.Name) &&
-            //    !HasCountedPartsInAssembly)
-            //{
-            //    string tagName = $"SO_PartsCounter_{mechDef.ChassisID}_{mechPartCount}";
-            //    int maxParts = 0;
-            //    string removeTagName = "Temp";
-            //
-            //    int i = 1;
-            //    do
-            //    {
-            //        var tempTagName = $"SO_PartsCounter_{mechDef.ChassisID}_{i}";
-            //        if (simGame.CompanyTags.Contains(tempTagName))
-            //        {
-            //            maxParts = i;
-            //            removeTagName = tempTagName;
-            //        }
-            //
-            //        i++;
-            //    } while (i < defaultMechPartMax);
-            //
-            //    if (mechPartCount > maxParts)
-            //    {
-            //        if (simGame.CompanyTags.Contains(removeTagName))
-            //            simGame.CompanyTags.Remove(removeTagName);
-            //
-            //        simGame.CompanyTags.Add(tagName);
-            //    }
-            //    
-            //    HasCountedPartsInAssembly = true;
-            //}
-
-            var differentVariantInAssembly = 1;
-
             // there could still be parts remaining that we need to delete from other variants
             var otherMechParts = new Dictionary<string, int>();
 
@@ -304,7 +265,6 @@ namespace SalvageOperations
                             otherMechParts[variant.Description.Id]++;
                             numPartsRemaining--;
                             partsRemoved++;
-                            differentVariantInAssembly++;
                             if (numPartsRemaining <= 0)
                                 break;
                         }
@@ -319,9 +279,24 @@ namespace SalvageOperations
             }
 
             if (!VariantPartCounter.ContainsKey(mechDef.Description.Id))
-                VariantPartCounter.Add(mechDef.Description.Id, differentVariantInAssembly);
+                VariantPartCounter.Add(mechDef.Description.Id, otherMechParts.Count(kvp => kvp.Value != 0) + 1);
 
-            simGame.CompanyTags.Add($"SO_PartsCounter_{mechDef.Description.Id}_{differentVariantInAssembly}");
+            //// find the highest indexed
+            //var highest = 0;
+            //foreach (var tag in simGame.CompanyTags.Where(tag => tag.Contains("SO_PartsCounter")))
+            //{
+            //    // TODO maybe use a string split array for performance/simplicity?
+            //    // not sure if this will throw on tag find failures, either
+            //
+            //    var match = Regex.Match(tag, @"SO_PartsCounter_mechdef_.+-.+_(\d+)_(\d+)$", RegexOptions.IgnoreCase);
+            //    var number = int.Parse(match.Groups[1].ToString());
+            //    highest = number > highest ? number : highest;
+            //}
+            //
+            //// make it a 1 if it's still a 0
+            //highest = highest == 0 ? 1 : highest + 1;
+            //
+            //simGame.CompanyTags.Add($"SO_PartsCounter_{mechDef.Description.Id}_{highest}_{differentVariantInAssembly}");
 
             // actually add the stats that will remove the other mech parts
             foreach (var mechID in otherMechParts.Keys)
