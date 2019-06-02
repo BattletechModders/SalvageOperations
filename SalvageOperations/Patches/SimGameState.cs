@@ -23,43 +23,6 @@ namespace SalvageOperations.Patches
                 Main.GlobalBuild();
 
             var hotkeyJ = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.F12);
-            if (hotkeyJ)
-            {
-                if (Sim != null)
-                {
-                    var sotags = Sim.CompanyTags.Where(tag => tag.Contains("SO-") || tag.Contains("SO_"));
-                    sotags.Do(tag => Sim.CompanyTags.Remove(tag));
-                }
-            }
-
-            var hotkeyK = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.K);
-            if (hotkeyK)
-            {
-                if (Sim != null)
-                {
-                    Sim.CompanyTags.Where(tag => tag.Contains("SO-") || tag.Contains("SO_")).Do(Main.HBSLog.LogDebug);
-                }
-            }
-
-            var hotkeyM = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.M);
-            if (hotkeyM)
-            {
-                foreach (var mechDef in Sim.ActiveMechs.Values)
-                {
-                    Main.HBSLog.LogDebug(mechDef.Description.Id);
-                    mechDef.MechTags.Do(Main.HBSLog.LogDebug);
-                }
-            }
-
-            var hotkeyN = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.N);
-            if (hotkeyN)
-            {
-                foreach (var mechDef in Sim.ReadyingMechs.Values)
-                {
-                    Main.HBSLog.LogDebug(mechDef.Description.Id);
-                    mechDef.MechTags.Do(Main.HBSLog.LogDebug);
-                }
-            }
         }
     }
 
