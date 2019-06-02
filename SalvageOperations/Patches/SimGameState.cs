@@ -98,79 +98,95 @@ namespace SalvageOperations.Patches
 
             // preventing this from re-running when it's been done once
             // if there are existing tags for this chassis...
-            LogDebug($">>> SO_PartsCounter_{mechDef.Description.Id}");
-            var partsTags = __instance.CompanyTags.Count(tag => tag.Contains($"SO_PartsCounter_{mechDef.Description.Id}"));
-
-            LogDebug("WorkOrder partsTags: " + partsTags);
-            // does this WorkOrder dictate a change in tags
-            // if one were just readied from parts it would have a PartsCounter
-            // there might be more PartsCounter tags for other inactive mechs though
-
-            // if there are no PartsCounter tags for this chassis, it wasn't just assembled so don't tag it again
-            if (partsTags > 0)
-            {
-                LogDebug("WorkOrderEntry AddSOTags");
-                Main.AddSOTags(__instance, mechDef);
-            }
-
+            //var partsTags = __instance.CompanyTags.Count(tag => tag.Contains($"SO_PartsCounter_{mechDef.Description.Id}"));
+            ////var builtTags = __instance.CompanyTags.Where(tag => tag.Contains($"SO_Built_{mechDef.Description.Id}"));
+            //
+            //LogDebug("WorkOrder SO_PartsCounter_ tags: " + partsTags);
+            //// does this WorkOrder dictate a change in tags
+            //// if one were just readied from parts it would have a PartsCounter
+            //// there might be more PartsCounter tags for other inactive mechs though
+            //// if there are no PartsCounter tags for this chassis, it wasn't just assembled so don't tag it again
+            //if (partsTags > 0)
+            //{
+            //    LogDebug("WorkOrderEntry AddSOTags");
+            //    Main.AddSOTags(__instance, mechDef);
+            //}
+            //// TODO kludge, can't come up with another way to avoid exploit closure
+            //else // if (builtTags.Count(tag => tag.Contains(mechDef.Description.Id)) == 0)
+            //{
+            //Main.RemoveSOTags(__instance, mechDef.Description.Id);
+            //LogDebug($"partsTags {partsTags}");
             // TODO make readying delays reflect the worst inactive mech
             // the PartsCounter not being removed makes the readying delay reflect the same mech until it's readied
             // remove the worst PartsCounter tag since we use the worst to build
-            var pattern = @"SO_PartsCounter_mechdef_.+-.+_(\d+)_(\d+)$";
-            var highestParts = 0;
-            var index = 0;
-            foreach (var tag in __instance.CompanyTags.Where(tag => tag.Contains($"SO_PartsCounter_{mechDef.Description.Id}")))
-            {
-                var tagIndex = int.Parse(Regex.Match(tag, pattern, RegexOptions.IgnoreCase).Groups[1].ToString());
-                var parts = int.Parse(Regex.Match(tag, pattern, RegexOptions.IgnoreCase).Groups[2].ToString());
-
-                if (parts > highestParts)
-                {
-                    highestParts = parts;
-                    index = tagIndex;
-                }
-            }
-
-            LogDebug($"SO_PartsCounter_{mechDef.Description.Id}_{index}_{highestParts}");
-            __instance.CompanyTags.Remove($"SO_PartsCounter_{mechDef.Description.Id}_{index}_{highestParts}");
+            //var pattern = @"SO_PartsCounter_mechdef_.+-.+_(\d+)_(\d+)$";
+            //var highestParts = 0;
+            //var index = 0;
+            //foreach (var tag in __instance.CompanyTags.Where(tag => tag.Contains($"SO_PartsCounter_{mechDef.Description.Id}")))
+            //{
+            //    var tagIndex = int.Parse(Regex.Match(tag, pattern, RegexOptions.IgnoreCase).Groups[1].ToString());
+            //    var parts = int.Parse(Regex.Match(tag, pattern, RegexOptions.IgnoreCase).Groups[2].ToString());
+            //
+            //    if (parts > highestParts)
+            //    {
+            //        highestParts = parts;
+            //        index = tagIndex;
+            //    }
+            //}
             
-            // optionally damage the mech structure
-            if (Main.Settings.StructureDamageLimit > 0)
-            {
-                var limbs = new List<LocationLoadoutDef>
-                {
-                    mechDef.LeftArm, mechDef.RightArm,
-                    mechDef.LeftLeg, mechDef.RightLeg,
-                    mechDef.LeftTorso, mechDef.RightTorso,
-                    mechDef.CenterTorso, mechDef.Head
-                };
             
-                limbs.Do(x => x.CurrentInternalStructure *= Math.Max((float) rng.NextDouble(), Main.Settings.StructureDamageLimit));
-            }
+            ///////////////////////  Why is there a tag left after?
+            ///
+            /// 
 
-            // add the default inventory for the mech and damage the components optionally
-            Traverse.Create(mechDef).Field("inventory").SetValue(__instance.DataManager.MechDefs.Get(mechDef.Description.Id).Inventory);
-            if (Main.Settings.DestroyedChance <= 0) return;
-            foreach (var component in mechDef.Inventory)
+            //var tagToRemove = $"SO_PartsCounter_{mechDef.Description.Id}_{index}_{highestParts}";
+            //LogDebug($">>>>>>>>> SO_PartsCounter_{mechDef.Description.Id}_{index}_{highestParts}");
+            var mechTag = mechDef.MechTags.First(x => x.StartsWith("SO_PartsCounter"));
+            //__instance.CompanyTags.Remove(tagToRemove);
+            if (mechDef.MechTags.Contains(mechTag))
             {
-                if (rng.NextDouble() <= Main.Settings.DestroyedChance)
+                mechDef.MechTags.Remove(mechTag);
+
+                // optionally damage the mech structure
+                if (Main.Settings.StructureDamageLimit > 0)
                 {
-                    if (rng.NextDouble() <= Main.Settings.NonFunctionalChance)
+                    var limbs = new List<LocationLoadoutDef>
                     {
-                        component.DamageLevel = ComponentDamageLevel.NonFunctional;
+                        mechDef.LeftArm, mechDef.RightArm,
+                        mechDef.LeftLeg, mechDef.RightLeg,
+                        mechDef.LeftTorso, mechDef.RightTorso,
+                        mechDef.CenterTorso, mechDef.Head
+                    };
+
+                    limbs.Do(x => x.CurrentInternalStructure *= Math.Max((float) rng.NextDouble(), Main.Settings.StructureDamageLimit));
+                }
+
+                // add the default inventory for the mech and damage the components optionally
+                Traverse.Create(mechDef).Field("inventory").SetValue(__instance.DataManager.MechDefs.Get(mechDef.Description.Id).Inventory);
+                if (Main.Settings.DestroyedChance <= 0) return;
+                foreach (var component in mechDef.Inventory)
+                {
+                    if (rng.NextDouble() <= Main.Settings.DestroyedChance)
+                    {
+                        if (rng.NextDouble() <= Main.Settings.NonFunctionalChance)
+                        {
+                            component.DamageLevel = ComponentDamageLevel.NonFunctional;
+                            continue;
+                        }
+
+                        component.DamageLevel = ComponentDamageLevel.Destroyed;
                         continue;
                     }
 
-                    component.DamageLevel = ComponentDamageLevel.Destroyed;
-                    continue;
+                    component.DamageLevel = ComponentDamageLevel.Functional;
                 }
-
-                component.DamageLevel = ComponentDamageLevel.Functional;
             }
+
+            
         }
     }
 
-    // trigger hotkey
+// trigger hotkey
     [HarmonyPatch(typeof(SimGameState), "Update")]
     public static class SimGameState_Update_Patch
     {
@@ -199,10 +215,30 @@ namespace SalvageOperations.Patches
                     Sim.CompanyTags.Where(tag => tag.Contains("SO-") || tag.Contains("SO_")).Do(LogDebug);
                 }
             }
+
+            var hotkeyM = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.M);
+            if (hotkeyM)
+            {
+                foreach (var mechDef in Sim.ActiveMechs.Values)
+                {
+                    LogDebug(mechDef.Description.Id);
+                    mechDef.MechTags.Do(LogDebug);
+                }
+            }
+
+            var hotkeyN = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.N);
+            if (hotkeyN)
+            {
+                foreach (var mechDef in Sim.ReadyingMechs.Values)
+                {
+                    LogDebug(mechDef.Description.Id);
+                    mechDef.MechTags.Do(LogDebug);
+                }
+            }
         }
     }
 
-    // where the mayhem starts
+// where the mayhem starts
     [HarmonyPatch(typeof(SimGameState), "AddMechPart")]
     public static class SimGameState_AddMechPart_Patch
     {

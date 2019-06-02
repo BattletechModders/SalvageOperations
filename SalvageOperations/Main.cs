@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using BattleTech;
 using BattleTech.Data;
@@ -32,11 +33,17 @@ namespace SalvageOperations
         private static bool _hasInitEventTracker;
         internal static readonly Dictionary<string, int> VariantPartCounter = new Dictionary<string, int>();
         internal static SimGameEventDef EventDef = new SimGameEventDef();
+        public static List<string[]> ReadyingMechPartTracker;
+        public static Dictionary<MechDef, int> AssemblyTracker;
+        internal static MechDef ReadyMechDef = new MechDef();
+        internal static string ReadyMechGUID = "";
+        
 
         // ENTRY POINT
         public static void Init(string directory, string settings)
         {
             modDir = directory;
+            HarmonyInstance.DEBUG = true;
             var harmony = HarmonyInstance.Create("io.github.mpstark.SalvageOperations");
             harmony.PatchAll(Assembly.GetExecutingAssembly());
             HBSLog = HBS.Logging.Logger.GetLogger("SalvageOperations");
@@ -58,6 +65,23 @@ namespace SalvageOperations
         }
 
         // UTIL
+        public static void ListTheStack(List<CodeInstruction> codes)
+        {
+            var sb = new StringBuilder();
+            sb.Append(new string(c: '=', count: 80) + "\n");
+            for (var i = 0; i < codes.Count(); i++)
+            {
+                sb.Append($"{codes[i].opcode}\t\t");
+                if (codes[i].operand != null)
+                {
+                    sb.Append($"{codes[i].operand}");
+                }
+                sb.Append("\n");
+            }
+            sb.Append(new string(c: '=', count: 80) + "\n");
+            FileLog.Log(sb.ToString());
+        }
+        
         public static int GetAllVariantMechParts(SimGameState simGame, MechDef mechDef)
         {
             int mechParts = 0;
@@ -87,6 +111,7 @@ namespace SalvageOperations
 
         internal static void RemoveSOTags(SimGameState __instance, string id)
         {
+            LogDebug("RemoveSOTags for " + id);
             // capture trailing the number on a string like SO_Built_mechdef_locust_LCT-1E_1
             var tags = __instance.CompanyTags.Where(tag => tag.Contains($"SO_Built_{id}"));
 
@@ -278,6 +303,9 @@ namespace SalvageOperations
                 }
             }
 
+            // TODO new serialized dictionary instead of separate tag manipulation
+            //AssemblyTracker.Add(mechDef, otherMechParts.Count(kvp => kvp.Value != 0));
+            
             if (!VariantPartCounter.ContainsKey(mechDef.Description.Id))
                 VariantPartCounter.Add(mechDef.Description.Id, otherMechParts.Count(kvp => kvp.Value != 0) + 1);
 
@@ -481,7 +509,7 @@ namespace SalvageOperations
                 new RequirementDef {Scope = EventScope.Company},
                 new RequirementDef[0],
                 new SimGameEventObject[0],
-                options.Where(option => option != null).ToArray(), 1);
+                options.Where(option => option != null).ToArray(), 1, true);
             if (!_hasInitEventTracker)
             {
                 eventTracker.Init(new[] {EventScope.Company}, 0, 0, SimGameEventDef.SimEventType.NORMAL, simGame);

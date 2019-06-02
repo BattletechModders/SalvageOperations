@@ -38,7 +38,7 @@ namespace SalvageOperations.Patches
 
                     // we've picked an option so...
                     VariantPartCounter.Clear();
-
+                    
                     // make a collection of options that weren't selected
                     //var otherOptions = EventDef.Options.Where(opt => !opt.Description.Id.Contains(option.Description.Id)).ToList();
                     //foreach (var opt in otherOptions)
