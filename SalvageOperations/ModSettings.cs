@@ -19,9 +19,7 @@ namespace SalvageOperations
         public bool ExcludeVariantsById = true;
         public bool ExcludeVariantsByTag = true;
         public bool Debug = false;
-        public float DestroyedChance = 0.50f;
-        public float NonFunctionalChance = 0.75f;
-        public float StructureDamageLimit = 0.75f;
+
         public static ModSettings ReadSettings(string json)
         {
             try

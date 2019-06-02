@@ -25,7 +25,7 @@ namespace SalvageOperations.Patches
             }
             catch (Exception ex)
             {
-                Logger.Error(ex);
+                Main.HBSLog.LogException(ex);
             }
         }
     }

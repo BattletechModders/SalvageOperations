@@ -3,14 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Text.RegularExpressions;
 using BattleTech;
 using BattleTech.Data;
 using Harmony;
 using HBS.Collections;
 using HBS.Logging;
-using static Logger;
 
 // ReSharper disable InconsistentNaming
 
@@ -31,25 +29,16 @@ namespace SalvageOperations
         internal static MechDef TriggeredVariant;
         private static readonly SimGameEventTracker eventTracker = new SimGameEventTracker();
         private static bool _hasInitEventTracker;
-        internal static readonly Dictionary<string, int> VariantPartCounter = new Dictionary<string, int>();
         internal static SimGameEventDef EventDef = new SimGameEventDef();
-        public static List<string[]> ReadyingMechPartTracker;
-        public static Dictionary<MechDef, int> AssemblyTracker;
-        internal static MechDef ReadyMechDef = new MechDef();
-        internal static string ReadyMechGUID = "";
-        
 
         // ENTRY POINT
         public static void Init(string directory, string settings)
         {
             modDir = directory;
-            HarmonyInstance.DEBUG = true;
             var harmony = HarmonyInstance.Create("io.github.mpstark.SalvageOperations");
             harmony.PatchAll(Assembly.GetExecutingAssembly());
             HBSLog = HBS.Logging.Logger.GetLogger("SalvageOperations");
             Settings = ModSettings.ReadSettings(settings);
-            // clears the Logger class' logfile
-            Clear();
         }
 
         // CONTRACTS
@@ -65,23 +54,6 @@ namespace SalvageOperations
         }
 
         // UTIL
-        public static void ListTheStack(List<CodeInstruction> codes)
-        {
-            var sb = new StringBuilder();
-            sb.Append(new string(c: '=', count: 80) + "\n");
-            for (var i = 0; i < codes.Count(); i++)
-            {
-                sb.Append($"{codes[i].opcode}\t\t");
-                if (codes[i].operand != null)
-                {
-                    sb.Append($"{codes[i].operand}");
-                }
-                sb.Append("\n");
-            }
-            sb.Append(new string(c: '=', count: 80) + "\n");
-            FileLog.Log(sb.ToString());
-        }
-        
         public static int GetAllVariantMechParts(SimGameState simGame, MechDef mechDef)
         {
             int mechParts = 0;
@@ -109,50 +81,6 @@ namespace SalvageOperations
             return variants;
         }
 
-        internal static void RemoveSOTags(SimGameState __instance, string id)
-        {
-            LogDebug("RemoveSOTags for " + id);
-            // capture trailing the number on a string like SO_Built_mechdef_locust_LCT-1E_1
-            var tags = __instance.CompanyTags.Where(tag => tag.Contains($"SO_Built_{id}"));
-
-            // find the highest numbered tag for this chassis and remove it
-            // this is intended to counter multiple mechs with the same chassis causing issues
-            var highest = 0;
-            foreach (var tag in tags)
-            {
-                // TODO maybe use a string split array for performance/simplicity?
-                var match = Regex.Match(tag, @"SO_Built_mechDef_.+-.+_(\d+)$", RegexOptions.IgnoreCase);
-                var number = int.Parse(match.Groups[1].ToString());
-                highest = number > highest ? number : highest;
-            }
-
-            if (__instance.CompanyTags.Contains($"SO_Built_{id}_{highest}"))
-                __instance.CompanyTags.Remove($"SO_Built_{id}_{highest}");
-        }
-
-        internal static void AddSOTags(SimGameState __instance, MechDef def)
-        {
-            var id = def.Description.Id;
-            var tags = __instance.CompanyTags.Where(tag => tag.Contains($"SO_Built_{id}"));
-
-            // find the highest numbered tag for this chassis, increment and tag
-            // this is intended to counter multiple mechs with the same chassis causing issues
-            var highest = 0;
-            foreach (var tag in tags)
-            {
-                // TODO maybe use a string split array for performance/simplicity?
-                // not sure if this will throw on tag find failures, either
-
-                var match = Regex.Match(tag, @"SO_Built_mechDef_.+-.+_(\d+)$", RegexOptions.IgnoreCase);
-                var number = int.Parse(match.Groups[1].ToString());
-                highest = number > highest ? number : highest;
-            }
-
-            // make it a 1 if it's still a 0
-            highest = highest == 0 ? 1 : highest + 1;
-            __instance.CompanyTags.Add($"SO_Built_{def.Description.Id}_{highest}");
-        }
-
         private static List<MechDef> ExcludeVariants(List<MechDef> variants)
         {
             // if it's an excluded variant it can only build with itself
@@ -160,7 +88,7 @@ namespace SalvageOperations
                 Settings.ExcludeVariantsById &&
                 Settings.ExcludedMechIds.Any(id => id == TriggeredVariant.Description.Id))
             {
-                LogDebug(">>> Selected excluded mech id: " + TriggeredVariant.Description.Id);
+                HBSLog.LogDebug(">>> Selected excluded mech id: " + TriggeredVariant.Description.Id);
                 return new List<MechDef> {TriggeredVariant};
             }
 
@@ -168,7 +96,7 @@ namespace SalvageOperations
                 Settings.ExcludeVariantsByTag &&
                 Settings.ExcludedMechTags.Any(tag => TriggeredVariant.MechTags.Any(x => x == tag)))
             {
-                LogDebug(">>> Selected excluded mech tag: " + TriggeredVariant.Description.Id);
+                HBSLog.LogDebug(">>> Selected excluded mech tag: " + TriggeredVariant.Description.Id);
                 return new List<MechDef> {TriggeredVariant};
             }
 
@@ -181,7 +109,7 @@ namespace SalvageOperations
                     Settings.ExcludeVariantsByTag &&
                     Settings.ExcludedMechTags.Any(tag => variant.MechTags.Any(t => t == tag)))
                 {
-                    LogDebug($">>> Removing variant {variant.Description.Id}");
+                    HBSLog.LogDebug($">>> Removing variant {variant.Description.Id}");
                     allowedVariants.Remove(variant);
                 }
             }
@@ -202,16 +130,16 @@ namespace SalvageOperations
             foreach (var mechID in SalvageFromContract.Keys)
             {
                 var mechDef = sim.DataManager.MechDefs.Get(mechID);
-                LogDebug($"Salvage mechID: {mechID} ({mechDef.Description.Name})");
+                HBSLog.LogDebug($"Salvage mechID: {mechID} ({mechDef.Description.Name})");
 
                 if (!BuiltMechNames.Contains(mechDef.Description.Name))
                 {
-                    LogDebug("Hasn't been built");
+                    HBSLog.LogDebug("Hasn't been built");
                     TryBuildMechs(new Dictionary<string, int> {{mechID, 1}});
                 }
             }
 
-            LogDebug("Done contract salvage");
+            HBSLog.LogDebug("Done contract salvage");
             SalvageFromContract.Clear();
             BuiltMechNames.Clear();
             Salvaging = false;
@@ -231,21 +159,21 @@ namespace SalvageOperations
                 {
                     itemCount = sim.GetItemCount(mechId, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
                     inventoryChassis.Add(mechId, itemCount);
-                    LogDebug($"New key: {mechId} ({itemCount})");
+                    HBSLog.LogDebug($"New key: {mechId} ({itemCount})");
                 }
                 else
                 {
                     // I don't think this is ever reached
                     itemCount = sim.GetItemCount(mechId, "MECHPART", SimGameState.ItemCountType.UNDAMAGED_ONLY);
                     inventoryChassis[mechId] += itemCount;
-                    LogDebug($"New value for {mechId} ({itemCount})");
+                    HBSLog.LogDebug($"New value for {mechId} ({itemCount})");
                 }
             }
 
-            LogDebug($"Chassis in inventory ({inventoryChassis.Count})");
+            HBSLog.LogDebug($"Chassis in inventory ({inventoryChassis.Count})");
             SalvageFromContract = inventoryChassis;
             BuiltMechNames.Clear();
-            LogDebug("SimulateContractSalvage");
+            HBSLog.LogDebug("SimulateContractSalvage");
             SimulateContractSalvage();
         }
 
@@ -281,7 +209,7 @@ namespace SalvageOperations
                     {
                         tempVariant = variant;
                         var parts = GetMechParts(simGame, variant);
-                        LogDebug($"Variant {variant.Description.Id}, {parts} parts");
+                        HBSLog.LogDebug($"Variant {variant.Description.Id}, {parts} parts");
                         if (parts > 0 && variant.Description.Id != mechDef.Description.Id)
                         {
                             if (!otherMechParts.ContainsKey(variant.Description.Id))
@@ -297,46 +225,23 @@ namespace SalvageOperations
 
                     if (partsRemoved == 0)
                     {
-                        LogDebug($"ABORT Variant {tempVariant.Description.Id}, 0 parts");
+                        HBSLog.LogDebug($"ABORT Variant {tempVariant.Description.Id}, 0 parts");
                         break;
                     }
                 }
             }
 
-            // TODO new serialized dictionary instead of separate tag manipulation
-            //AssemblyTracker.Add(mechDef, otherMechParts.Count(kvp => kvp.Value != 0));
-            
-            if (!VariantPartCounter.ContainsKey(mechDef.Description.Id))
-                VariantPartCounter.Add(mechDef.Description.Id, otherMechParts.Count(kvp => kvp.Value != 0) + 1);
-
-            //// find the highest indexed
-            //var highest = 0;
-            //foreach (var tag in simGame.CompanyTags.Where(tag => tag.Contains("SO_PartsCounter")))
-            //{
-            //    // TODO maybe use a string split array for performance/simplicity?
-            //    // not sure if this will throw on tag find failures, either
-            //
-            //    var match = Regex.Match(tag, @"SO_PartsCounter_mechdef_.+-.+_(\d+)_(\d+)$", RegexOptions.IgnoreCase);
-            //    var number = int.Parse(match.Groups[1].ToString());
-            //    highest = number > highest ? number : highest;
-            //}
-            //
-            //// make it a 1 if it's still a 0
-            //highest = highest == 0 ? 1 : highest + 1;
-            //
-            //simGame.CompanyTags.Add($"SO_PartsCounter_{mechDef.Description.Id}_{highest}_{differentVariantInAssembly}");
-
             // actually add the stats that will remove the other mech parts
             foreach (var mechID in otherMechParts.Keys)
             {
-                LogDebug($"Adding MECHPART removal stat {mechID}, {otherMechParts[mechID]} parts");
+                HBSLog.LogDebug($"Adding MECHPART removal stat {mechID}, {otherMechParts[mechID]} parts");
                 try
                 {
                     stats.Add(new SimGameStat(GetItemStatID(mechID, "MECHPART"), -otherMechParts[mechID]));
                 }
                 catch (Exception ex)
                 {
-                    Error(ex);
+                    HBSLog.LogException(ex);
                 }
             }
 
@@ -371,7 +276,7 @@ namespace SalvageOperations
             foreach (var variant in variants)
             {
                 var partsOfThisVariant = GetMechParts(simGame, variant);
-                LogDebug($"Using for assembly: {variant.Description.Id}: {partsOfThisVariant} parts");
+                HBSLog.LogDebug($"Using for assembly: {variant.Description.Id}: {partsOfThisVariant} parts");
 
                 if (partsOfThisVariant <= 0)
                     continue;
@@ -392,7 +297,7 @@ namespace SalvageOperations
 
             if (TriggeredVariant != null && !variantParts.ContainsKey(TriggeredVariant.Description.Id))
             {
-                LogDebug("Add back triggered");
+                HBSLog.LogDebug("Add back triggered");
                 variantParts.Add(TriggeredVariant.Description.Id, GetMechParts(simGame, TriggeredVariant));
             }
 
@@ -400,7 +305,7 @@ namespace SalvageOperations
             if (highestVariant == null ||
                 variantParts.Values.Sum() < UnityGameInstance.BattleTechGame.Simulation.Constants.Story.DefaultMechPartMax)
             {
-                LogDebug("Insufficient parts to complete build");
+                HBSLog.LogDebug("Insufficient parts to complete build");
                 return;
             }
 
@@ -420,13 +325,12 @@ namespace SalvageOperations
 
                 if (optionIdx > 2)
                 {
-                    LogDebug("Had more than 3 options, truncating at 3");
                     HBSLog.Log("Had more than 3 options, truncating at 3");
                     break;
                 }
 
                 // remove artificialInflation so it displays nicely (and doesn't give 1 miiiiillion mech parts)
-                LogDebug($"Building event option {optionIdx} for {variant}");
+                HBSLog.LogDebug($"Building event option {optionIdx} for {variant}");
                 if (TriggeredVariant != null && variant == TriggeredVariant.Description.Id)
                 {
                     variantParts[variant] -= artificialInflation;
@@ -481,8 +385,9 @@ namespace SalvageOperations
                 }
             };
             TriggeredVariant = null;
-            LogDebug("OPTIONS\n=======");
-            options.Where(option => option != null).Do(x => LogDebug(Regex.Match(x.ResultSets[0].Description.Details, @"mechdef_.+_(.+)]\.").Groups[1].ToString()));
+            // log out the available event options
+            HBSLog.LogDebug("OPTIONS\n=======");
+            options.Where(option => option != null).Do(x => HBSLog.LogDebug(Regex.Match(x.ResultSets[0].Description.Details, @"mechdef_.+_(.+)]\.").Groups[1].ToString()));
 
             // setup the event string based on the situation
             var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
@@ -537,7 +442,7 @@ namespace SalvageOperations
 
             // try to build each chassis
             var prefabId = chassisParts.Keys.First();
-            LogDebug("prefabId " + prefabId);
+            HBSLog.LogDebug("prefabId " + prefabId);
 
             // add chassis parts that we already have
             var matchingMechDefs = GetAllMatchingVariants(sim.DataManager, prefabId);
@@ -548,11 +453,11 @@ namespace SalvageOperations
 
             // need a generic name for below
             var mechName = matchingMechDefs.First().Description.Name;
-            LogDebug($"{prefabId} has {chassisParts[prefabId]} pieces");
+            HBSLog.LogDebug($"{prefabId} has {chassisParts[prefabId]} pieces");
             if (chassisParts[prefabId] >= defaultMechPartMax)
             {
                 // has enough parts to build a mech, generate popup
-                LogDebug($"Generating popup for {prefabId}, adding {mechName} to list");
+                HBSLog.LogDebug($"Generating popup for {prefabId}, adding {mechName} to list");
                 try
                 {
                     // build a list of "Atlas" and "Locust"
@@ -563,7 +468,7 @@ namespace SalvageOperations
                 }
                 catch (Exception ex)
                 {
-                    Error(ex);
+                    HBSLog.LogException(ex);
                 }
             }
         }

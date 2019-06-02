@@ -61,7 +61,6 @@
   <ItemGroup>
     <Compile Include="Main.cs" />
     <Compile Include="ModSettings.cs" />
-    <Compile Include="Logger.cs" />
     <Compile Include="Patches\AAR_SalvageChosen.cs" />
     <Compile Include="Patches\Contract.cs" />
     <Compile Include="Patches\MaxPartsIncrease.cs" />
@@ -69,8 +68,6 @@
     <Compile Include="Patches\LCE_SalvageMechPart.cs" />
     <Compile Include="Patches\MechBayChassisUnitElement.cs" />
     <Compile Include="Patches\MechBayPanel.cs" />
-    <Compile Include="Patches\ReadyMechDelay.cs" />
-    <Compile Include="Patches\SimGameEventResultSet.cs" />
     <Compile Include="Patches\SimGameInterruptManager.cs" />
     <Compile Include="Patches\SimGameState.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

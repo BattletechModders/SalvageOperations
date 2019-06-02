@@ -23,7 +23,7 @@ namespace SalvageOperations.Patches
                     return;
                 Main.SalvageFromContract.Clear();
                 var chassisId = __instance.ChassisDef.Description.Id;
-                Logger.LogDebug($"chassisId selected: {chassisId}");
+                Main.HBSLog.LogDebug($"chassisId selected: {chassisId}");
 
                 var mechId = chassisId.Replace("chassisdef", "mechdef");
                 Main.TriggeredVariant = UnityGameInstance.BattleTechGame.DataManager.MechDefs.Get(mechId);
