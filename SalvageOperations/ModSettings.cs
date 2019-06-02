@@ -7,7 +7,6 @@ namespace SalvageOperations
 {
     internal class ModSettings
     {
-        public float ReadyMechDelayFactor = 1f;
         public KeyCode Hotkey = KeyCode.Alpha9;
         public float CT_Value = 0.5f;
         public float Other_Parts_Value = 1 / 12f;
