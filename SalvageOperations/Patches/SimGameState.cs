@@ -151,4 +151,13 @@ namespace SalvageOperations.Patches
             }
         }
     }
+
+    [HarmonyPatch(typeof(SimGameState), "ApplySimGameEventResult", new[] { typeof(SimGameEventResult), typeof(List<object>), typeof(SimGameEventTracker) }) ]
+    public static class SimGameState_ApplySimGameEventResult_Patch
+    {
+        public static void Postfix()
+        {
+            Main.ConvertCompanyTags();
+        }
+    }
 }

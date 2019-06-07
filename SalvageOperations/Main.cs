@@ -176,9 +176,8 @@ namespace SalvageOperations
         // MEAT
         private static SimGameEventResult[] GetBuildMechEventResult(SimGameState simGame, MechDef mechDef)
         {
-            Log($"Generate Event Result for {mechDef.Chassis.Description.UIName}");
             var stats = new List<SimGameStat>();
-            var TempTags = new TagSet();
+           
             string TagName;
 
             // adds the flatpacked mech
@@ -190,9 +189,11 @@ namespace SalvageOperations
 
             // removes the parts from the mech we're building from inventory
             stats.Add(new SimGameStat(GetItemStatID(mechDef.Description.Id, "MECHPART"), -thisParts));
-            TagName = "SO-Assembled-" + mechDef.Description.Id + "-" + thisParts;
-            TempTags.Add(TagName);
-
+            TagName = "SO-Assembled-" + mechDef.Description.Id + "~" + thisParts;
+            var TempTags = new TagSet
+            {
+                TagName
+            };
 
             // there could still be parts remaining that we need to delete from other variants
             var otherMechParts = new Dictionary<string, int>();
@@ -253,7 +254,7 @@ namespace SalvageOperations
                     Stats = stats.ToArray(),
                     Scope = EventScope.Company,
                     Actions = new SimGameResultAction[0],
-                    AddedTags = new TagSet(TempTags),
+                    AddedTags = TempTags,
                     RemovedTags = new TagSet(),
                     ForceEvents = new SimGameForcedEvent[0],
                     Requirements = null,
@@ -505,12 +506,14 @@ namespace SalvageOperations
         {
             var simGame = UnityGameInstance.BattleTechGame.Simulation;
             var tempCompanyTags = simGame.CompanyTags;
+            Log("Convert Tags");
             foreach (var tag in tempCompanyTags)
             {
+                if (tag.StartsWith($"GalaxyAtWarSave")) continue;
                 if (!tag.StartsWith($"SO-Assembled-"))
                     continue;
 
-                var match = Regex.Match(tag, @"SO-Assembled-(\d)-(\d)$");
+                var match = Regex.Match(tag, @"SO-Assembled-(.+)~(\d)$");
                 var MDString = match.Groups[1].ToString();
                 var MDCount = int.Parse(match.Groups[2].ToString());
 

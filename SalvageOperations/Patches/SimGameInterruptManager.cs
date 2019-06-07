@@ -14,7 +14,6 @@ namespace SalvageOperations.Patches
             var mechBayPanel = (MechBayPanel) UIManager.Instance.Find(x => x.IsType(typeof(MechBayPanel)));
             var sim = UnityGameInstance.BattleTechGame.Simulation;
             var storageWidget = Traverse.Create(mechBayPanel).Field("storageWidget").GetValue<MechBayMechStorageWidget>();
-
             if (!storageWidget.enabled) return;
             try
             {

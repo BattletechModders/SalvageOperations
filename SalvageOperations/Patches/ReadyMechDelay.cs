@@ -45,7 +45,7 @@ namespace SalvageOperations.Patches
             readyTimeState = __instance.Constants.Story.MechReadyTime;
             __instance.Constants.Story.MechReadyTime = (int)(MechReadyTime * Main.Settings.ReadyMechDelayFactor * (Sim.Constants.Story.DefaultMechPartMax + 1 - parts));
 
-            BuildingString = "SO-Building-" + readyMech + "-" + parts;
+            BuildingString = "SO-Building-" + readyMech + "~" + parts;
 
             if (!Main.BuildingMechs.Keys.Contains(readyMech))
             {
@@ -67,30 +67,22 @@ namespace SalvageOperations.Patches
         }
     }
 
-    //[HarmonyPatch(typeof(SimGameState), "ML_ReadyMech")]
-    //public class SimGameState_ML_ReadyMech_Patch
-    //{
-    //    private static readonly SimGameState Sim = UnityGameInstance.BattleTechGame.Simulation;
+    [HarmonyPatch(typeof(SimGameState), "ML_ReadyMech")]
+    public class SimGameState_ML_ReadyMech_Patch
+    {
+        private static readonly SimGameState Sim = UnityGameInstance.BattleTechGame.Simulation;
 
-    //    public static void Postfix(WorkOrderEntry_ReadyMech order)
-    //    {
+        public static void Postfix(WorkOrderEntry_ReadyMech order)
+        {
+            var TempTag = order.Mech.MechTags.First(x => x.StartsWith($"SO-Building-"));
+            order.Mech.MechTags.Remove(TempTag);
 
-    //        string id = order.Mech.Description.Id;
-    //        int maxParts = Sim.Constants.Story.DefaultMechPartMax;
-    //        int i = 1;
-    //        do
-    //        {
-    //            var tempTagName = $"SO-{id}_{i}";
-    //            if (Sim.CompanyTags.Contains(tempTagName))
-    //            {
-    //                maxParts = i;
-    //                Sim.CompanyTags.Remove(tempTagName);
-    //            }
-
-    //            i++;
-    //        } while (i < maxParts + 1);
-    //    }
-    //}
+            var match = Regex.Match(TempTag, @"SO-Building-(.+)~(\d)$");
+            var MDString = match.Groups[1].ToString();
+            var MDCount = int.Parse(match.Groups[2].ToString());
+            Main.BuildingMechs[MDString].Remove(MDCount);
+        }
+    }
 
     [HarmonyPatch(typeof(SimGameState), "Cancel_ML_ReadyMech")]
     public class SimGameState_Cancel_ML_ReadyMech_Patch
@@ -101,7 +93,7 @@ namespace SalvageOperations.Patches
             MechDef mech = order.Mech;
             string tempTagName = mech.MechTags.First(x => x.StartsWith($"SO-Building-"));
            
-            var match = Regex.Match(tempTagName, @"SO-Building-(\d)-(\d)$");
+            var match = Regex.Match(tempTagName, @"SO-Building-(.+)~(\d)$");
             var MDString = match.Groups[1].ToString();
             var MDCount = int.Parse(match.Groups[2].ToString());
 

@@ -32,7 +32,7 @@ namespace SalvageOperations
             public static void Postfix()
             {
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
-                if (!sim.CompanyTags.Any(x => x.StartsWith("SOSAVE{")))
+                if (sim.CompanyTags.Any(x => x.StartsWith("SOSAVE{")))
                 {
                     DeserializeSO();
                 }
