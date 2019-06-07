@@ -26,6 +26,9 @@ namespace SalvageOperations
         internal static string TriggeredVariant = "";
         internal static MechDef ExcludedVariantHolder;
 
+        public static Dictionary<string, List<int>> BuiltMechs = new Dictionary<string, List<int>>();
+        public static Dictionary<string, List<int>> BuildingMechs = new Dictionary<string, List<int>>();
+
         private static SimGameEventTracker eventTracker = new SimGameEventTracker();
         private static bool _hasInitEventTracker;
 
@@ -136,6 +139,7 @@ namespace SalvageOperations
             SalvageFromContract.Clear();
             HasBeenBuilt.Clear();
             sim.CompanyTags.Remove("SO_Salvaging");
+            ConvertCompanyTags();
         }
 
         internal static void GlobalBuild()
@@ -174,10 +178,11 @@ namespace SalvageOperations
         {
             Log($"Generate Event Result for {mechDef.Chassis.Description.UIName}");
             var stats = new List<SimGameStat>();
+            var TempTags = new TagSet();
+            string TagName;
 
             // adds the flatpacked mech
             stats.Add(new SimGameStat(GetItemStatID(mechDef.ChassisID, "MechDef"), 1));
-            mechDef.Chassis.ChassisTags.Add("SO_Built");
 
             var defaultMechPartMax = simGame.Constants.Story.DefaultMechPartMax;
             var thisParts = GetMechParts(simGame, mechDef);
@@ -185,32 +190,9 @@ namespace SalvageOperations
 
             // removes the parts from the mech we're building from inventory
             stats.Add(new SimGameStat(GetItemStatID(mechDef.Description.Id, "MECHPART"), -thisParts));
+            TagName = "SO-Assembled-" + mechDef.Description.Id + "-" + thisParts;
+            TempTags.Add(TagName);
 
-            // Record how many parts were used to assemble the mech.
-            string tagName = $"SO-{mechDef.ChassisID}_{thisParts}";
-            int maxParts = 0;
-            string removeTagName = "Temp";
-
-            int i = 1;
-            do
-            {
-                var tempTagName = $"SO-{mechDef.ChassisID}_{i}";
-                if (simGame.CompanyTags.Contains(tempTagName))
-                {
-                    maxParts = i;
-                    removeTagName = tempTagName;
-                }
-
-                i++;
-            } while (i < defaultMechPartMax);
-
-            if (thisParts > maxParts)
-            {
-                if (simGame.CompanyTags.Contains(removeTagName))
-                    simGame.CompanyTags.Remove(removeTagName);
-
-                simGame.CompanyTags.Add(tagName);
-            }
 
             // there could still be parts remaining that we need to delete from other variants
             var otherMechParts = new Dictionary<string, int>();
@@ -271,7 +253,7 @@ namespace SalvageOperations
                     Stats = stats.ToArray(),
                     Scope = EventScope.Company,
                     Actions = new SimGameResultAction[0],
-                    AddedTags = new TagSet(),
+                    AddedTags = new TagSet(TempTags),
                     RemovedTags = new TagSet(),
                     ForceEvents = new SimGameForcedEvent[0],
                     Requirements = null,
@@ -460,7 +442,7 @@ namespace SalvageOperations
                 new RequirementDef {Scope = EventScope.Company},
                 new RequirementDef[0],
                 new SimGameEventObject[0],
-                options, 1);
+                options, 1, false);
             if (!_hasInitEventTracker)
             {
                 eventTracker.Init(new[] {EventScope.Company}, 0, 0, SimGameEventDef.SimEventType.NORMAL, simGame);
@@ -511,12 +493,39 @@ namespace SalvageOperations
                 // has enough pieces to build a mech, generate popup
                 // Logger.Log($"Generating popup for {UIName}");
                 GenerateMechPopup(simGame, UIName);
+
                 if (!HasBeenBuilt.ContainsKey(mechName))
                 {
                     HasBeenBuilt[mechName] = 1;
                     // TestBuildAgain[UIName] = 1;
                 }
             }
+        }
+        public static void ConvertCompanyTags()
+        {
+            var simGame = UnityGameInstance.BattleTechGame.Simulation;
+            var tempCompanyTags = simGame.CompanyTags;
+            foreach (var tag in tempCompanyTags)
+            {
+                if (!tag.StartsWith($"SO-Assembled-"))
+                    continue;
+
+                var match = Regex.Match(tag, @"SO-Assembled-(\d)-(\d)$");
+                var MDString = match.Groups[1].ToString();
+                var MDCount = int.Parse(match.Groups[2].ToString());
+
+                if (!BuiltMechs.Keys.Contains(MDString))
+                {
+                    var templist = new List<int>() { MDCount };
+                    BuiltMechs.Add(MDString, templist);
+                }
+                else
+                {
+                    BuiltMechs[MDString].Add(MDCount);
+                }
+                simGame.CompanyTags.Remove(tag);
+            }
+
         }
     }
 }

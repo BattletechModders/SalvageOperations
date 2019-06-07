@@ -66,6 +66,7 @@ namespace SalvageOperations.Patches
             {
                 Main.ExcludedVariantHolder = __instance.DataManager.MechDefs.Get(id);
                 Main.TryBuildMechs(__instance, new Dictionary<string, int> {{id, 1}});
+                Main.ConvertCompanyTags();
             }
 
             return false;
@@ -95,6 +96,7 @@ namespace SalvageOperations.Patches
             }
 
             __instance.CompanyTags.Remove("SO_Salvaging");
+            Main.ConvertCompanyTags();
             Main.ContractEnd();
         }
     }
