@@ -509,24 +509,32 @@ namespace SalvageOperations
             Log("Convert Tags");
             foreach (var tag in tempCompanyTags)
             {
-                if (tag.StartsWith($"GalaxyAtWarSave")) continue;
-                if (!tag.StartsWith($"SO-Assembled-"))
-                    continue;
 
-                var match = Regex.Match(tag, @"SO-Assembled-(.+)~(\d)$");
-                var MDString = match.Groups[1].ToString();
-                var MDCount = int.Parse(match.Groups[2].ToString());
+                if (tag.StartsWith($"SO-Assembled-"))
+                {
+                    //Garbage Collection for the time being. Blah.
+                    try
+                    {
+                        var match = Regex.Match(tag, @"SO-Assembled-(.+)~(\d)$");
+                        var MDString = match.Groups[1].ToString();
+                        var MDCount = int.Parse(match.Groups[2].ToString());
 
-                if (!BuiltMechs.Keys.Contains(MDString))
-                {
-                    var templist = new List<int>() { MDCount };
-                    BuiltMechs.Add(MDString, templist);
+                        if (!BuiltMechs.Keys.Contains(MDString))
+                        {
+                            var templist = new List<int>() { MDCount };
+                            BuiltMechs.Add(MDString, templist);
+                        }
+                        else
+                        {
+                            BuiltMechs[MDString].Add(MDCount);
+                        }
+                        simGame.CompanyTags.Remove(tag);
+                    }
+                    catch
+                    {
+                        simGame.CompanyTags.Remove(tag);
+                    }
                 }
-                else
-                {
-                    BuiltMechs[MDString].Add(MDCount);
-                }
-                simGame.CompanyTags.Remove(tag);
             }
 
         }

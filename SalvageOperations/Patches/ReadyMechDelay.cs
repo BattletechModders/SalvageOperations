@@ -17,7 +17,16 @@ namespace SalvageOperations.Patches
         public static void Prefix(ChassisDef ___selectedChassis)
         {
             var readyMech = ___selectedChassis.Description.Id.Replace("chassisdef", "mechdef");
-            int parts = Main.BuiltMechs[readyMech].Max();
+
+            //In here for save compatiblity for previous bug.
+            int parts = Sim.Constants.Story.DefaultMechPartMax;
+            try
+            {
+                parts = Main.BuiltMechs[readyMech].Max();
+            }
+            catch
+            {
+            }
             readyTimeState = Sim.Constants.Story.MechReadyTime;
             Sim.Constants.Story.MechReadyTime = (int)(MechReadyTime * Main.Settings.ReadyMechDelayFactor * (Sim.Constants.Story.DefaultMechPartMax + 1 - parts));
         }
@@ -40,7 +49,16 @@ namespace SalvageOperations.Patches
         public static void Prefix(SimGameState __instance, string id)
         {
             var readyMech = id.Replace("chassisdef", "mechdef");
-            int parts = Main.BuiltMechs[readyMech].Max();
+
+            //In here for save compatiblity for previous bug.
+            int parts = Sim.Constants.Story.DefaultMechPartMax;
+            try
+            {
+                parts = Main.BuiltMechs[readyMech].Max();
+            }
+            catch
+            {
+            }
 
             readyTimeState = __instance.Constants.Story.MechReadyTime;
             __instance.Constants.Story.MechReadyTime = (int)(MechReadyTime * Main.Settings.ReadyMechDelayFactor * (Sim.Constants.Story.DefaultMechPartMax + 1 - parts));
@@ -113,8 +131,9 @@ namespace SalvageOperations.Patches
     {
         public static void Postfix(SimGameState __instance, MechDef def)
         {
-            string StorageTag = "SO-Assembled-" + def.Description.Id + "-" + __instance.Constants.Story.DefaultMechPartMax;
+            string StorageTag = "SO-Assembled-" + def.Description.Id + "~" + __instance.Constants.Story.DefaultMechPartMax;
             __instance.CompanyTags.Add(StorageTag);
+            Main.ConvertCompanyTags();
         }
     }
 }
