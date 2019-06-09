@@ -74,7 +74,12 @@ namespace SalvageOperations.Patches
             {
                 Main.BuildingMechs[readyMech].Add(parts);
             }
-            Main.BuiltMechs[readyMech].Remove(parts);
+            try
+            {
+
+                Main.BuiltMechs[readyMech].Remove(parts);
+            }
+            catch { }
         }
 
         public static void Postfix(SimGameState __instance, int baySlot)
