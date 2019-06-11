@@ -12,7 +12,6 @@ namespace SalvageOperations.Patches
     {
         public static void Prefix(MechBayChassisUnitElement __instance)
         {
-            SimGameState sim = UnityGameInstance.BattleTechGame.Simulation;
             // if salvage mech icon is shift-clicked, force assembly checking on that chassis
             if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
             {
@@ -32,6 +31,24 @@ namespace SalvageOperations.Patches
                 Main.SalvageFromContract.Add(mechId, 1);
                 Main.SimulateContractSalvage();
                 Main.SalvageFromContract.Remove(mechId);
+            }
+        }
+    }
+
+    // one of the patches to enable 99 parts
+    [HarmonyPatch(typeof(MechBayChassisUnitElement), "SetData")]
+    public static class MechBayChassisUnitElement_SetData_Patch
+    {
+        public static void Prefix(ChassisDef chassisDef, ref int partsCount, ref int partsMax, int chassisQuantity)
+        {
+            if (chassisDef != null)
+            {
+                partsMax = 99;
+                if (partsCount == 0)
+                {
+                    chassisDef.MechPartCount = 99;
+                    partsCount = 99;
+                }
             }
         }
     }

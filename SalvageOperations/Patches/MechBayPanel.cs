@@ -2,6 +2,8 @@ using BattleTech.UI;
 using Harmony;
 using UnityEngine;
 
+// ReSharper disable InconsistentNaming
+
 namespace SalvageOperations.Patches
 {
     [HarmonyPatch(typeof(MechBayPanel), "ViewMechStorage")]
@@ -9,7 +11,7 @@ namespace SalvageOperations.Patches
     {
         public static bool Prefix()
         {
-            // if Storage is shift-clicked, force assembly checking
+            // if Storage tab is shift-clicked, force assembly checking
             if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
             {
                 Main.GlobalBuild();
@@ -18,5 +20,5 @@ namespace SalvageOperations.Patches
 
             return true;
         }
-    } 
+    }
 }

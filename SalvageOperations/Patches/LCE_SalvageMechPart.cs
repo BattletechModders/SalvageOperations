@@ -3,7 +3,6 @@ using BattleTech.UI;
 using Harmony;
 
 // ReSharper disable InconsistentNaming
-// ReSharper disable UnusedMember.Global
 
 namespace SalvageOperations.Patches
 {
@@ -20,7 +19,6 @@ namespace SalvageOperations.Patches
                 theWidget.mechPartsNumbersText.SetText($"{thisMechPieces} ({allMechPieces}) / {defaultMechPartMax}");
             else
                 theWidget.mechPartsNumbersText.SetText($"{thisMechPieces} (R) / {defaultMechPartMax}");
-                
         }
     }
 }

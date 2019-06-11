@@ -5,14 +5,13 @@ using BattleTech;
 using Harmony;
 
 // ReSharper disable InconsistentNaming
-// ReSharper disable UnusedMember.Global
 
 namespace SalvageOperations.Patches
 {
     [HarmonyPatch(typeof(Contract), "GenerateSalvage")]
     public static class Contract_GenerateSalvage_Patch
     {
-        private static readonly ChassisLocations[] BODY_LOCATIONS = { ChassisLocations.LeftArm, ChassisLocations.RightArm, ChassisLocations.LeftLeg, ChassisLocations.RightLeg, ChassisLocations.LeftTorso, ChassisLocations.RightTorso };
+        private static readonly ChassisLocations[] BODY_LOCATIONS = {ChassisLocations.LeftArm, ChassisLocations.RightArm, ChassisLocations.LeftLeg, ChassisLocations.RightLeg, ChassisLocations.LeftTorso, ChassisLocations.RightTorso};
 
         public static void Postfix(Contract __instance, List<UnitResult> enemyMechs)
         {
@@ -60,7 +59,7 @@ namespace SalvageOperations.Patches
                     }
                 }
 
-                var mechParts = (int)Math.Round(bits - (1 - Main.Settings.Rounding_Cutoff));
+                var mechParts = (int) Math.Round(bits - (1 - Main.Settings.Rounding_Cutoff));
                 Main.HBSLog.Log($"= floor({bits}) = {mechParts}");
 
                 if (mechParts > 0)

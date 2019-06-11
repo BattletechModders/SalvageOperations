@@ -12,7 +12,6 @@
 		"AdjustedMechSalvage"
 	],
 	"Settings": {
-		"ReadyMechDelayFactor": 2,
 		"CT_Value": 0.5,
 		"Other_Parts_Value": 0.0833333,
 		"Rounding_Cutoff": 0.75,
@@ -49,6 +48,6 @@
 		],
 		"ExcludedMechTags": [
 		],
-		"Debug": true
+		"Debug": false
 	}
 }

@@ -7,7 +7,6 @@ using Localize;
 using UnityEngine;
 
 // ReSharper disable InconsistentNaming
-// ReSharper disable UnusedMember.Global
 
 namespace SalvageOperations.Patches
 {
@@ -17,12 +16,9 @@ namespace SalvageOperations.Patches
     {
         public static void Postfix(SimGameState __instance)
         {
-            var Sim = UnityGameInstance.BattleTechGame.Simulation;
             var hotkey = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(Main.Settings.Hotkey);
             if (hotkey)
                 Main.GlobalBuild();
-
-            var hotkeyJ = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.F12);
         }
     }
 
@@ -128,6 +124,16 @@ namespace SalvageOperations.Patches
                 __result.Add(new ResultDescriptionEntry(new Text(
                     $"{prefix} {Interpolator.Interpolate(text, gameContext, false)}"), gameContext, stat.name));
             }
+        }
+    }
+
+    // one of the patches to enable 99 parts - correction for scrapping mechs for money
+    [HarmonyPatch(typeof(SimGameState), "ScrapMechPart")]
+    public static class SimGameState_ScrapMechPart_Patch
+    {
+        public static void Prefix(SimGameState __instance, ref float partMax)
+        {
+            partMax = __instance.Constants.Story.DefaultMechPartMax;
         }
     }
 }

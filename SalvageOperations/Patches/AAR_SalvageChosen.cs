@@ -3,7 +3,6 @@ using BattleTech.UI;
 using Harmony;
 
 // ReSharper disable InconsistentNaming
-// ReSharper disable UnusedMember.Global
 
 namespace SalvageOperations.Patches
 {

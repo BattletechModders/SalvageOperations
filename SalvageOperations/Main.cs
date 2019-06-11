@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -14,12 +13,10 @@ using HBS.Logging;
 
 namespace SalvageOperations
 {
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
     public static class Main
     {
         internal static ILog HBSLog;
         internal static ModSettings Settings;
-        private static string modDir;
 
         internal static bool IsResolvingContract { get; private set; }
 
@@ -34,10 +31,9 @@ namespace SalvageOperations
         // ENTRY POINT
         public static void Init(string directory, string settings)
         {
-            modDir = directory;
             var harmony = HarmonyInstance.Create("io.github.mpstark.SalvageOperations");
             harmony.PatchAll(Assembly.GetExecutingAssembly());
-            HBSLog = HBS.Logging.Logger.GetLogger("SalvageOperations");
+            HBSLog = Logger.GetLogger("SalvageOperations");
             Settings = ModSettings.ReadSettings(settings);
         }
 
