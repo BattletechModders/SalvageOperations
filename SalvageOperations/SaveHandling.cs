@@ -72,7 +72,7 @@ namespace SalvageOperations
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
             SaveValues = JsonConvert.DeserializeObject<SaveValues>(sim.CompanyTags.First(x => x.StartsWith("SOSAVE{")).Substring(6));
-            Main.BuildingMechs = SaveValues.BuildingMechs;
+            //Main.BuildingMechs = SaveValues.BuildingMechs;
             Main.BuiltMechs = SaveValues.BuiltMechs;
         }
     }

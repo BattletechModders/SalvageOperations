@@ -27,7 +27,7 @@ namespace SalvageOperations
         internal static MechDef ExcludedVariantHolder;
 
         public static Dictionary<string, List<int>> BuiltMechs = new Dictionary<string, List<int>>();
-        public static Dictionary<string, List<int>> BuildingMechs = new Dictionary<string, List<int>>();
+        //public static Dictionary<string, List<int>> BuildingMechs = new Dictionary<string, List<int>>();
 
         private static SimGameEventTracker eventTracker = new SimGameEventTracker();
         private static bool _hasInitEventTracker;

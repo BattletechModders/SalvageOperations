@@ -58,6 +58,7 @@ namespace SalvageOperations.Patches
             }
             catch
             {
+                parts = Sim.Constants.Story.DefaultMechPartMax;
             }
 
             readyTimeState = __instance.Constants.Story.MechReadyTime;
@@ -65,21 +66,21 @@ namespace SalvageOperations.Patches
 
             BuildingString = "SO-Building-" + readyMech + "~" + parts;
 
-            if (!Main.BuildingMechs.Keys.Contains(readyMech))
-            {
-                var tempList = new List<int>() { parts };
-                Main.BuildingMechs.Add(readyMech, tempList);
-            }
-            else
-            {
-                Main.BuildingMechs[readyMech].Add(parts);
-            }
-            try
-            {
+            //if (!Main.BuildingMechs.Keys.Contains(readyMech))
+            //{
+            //    var tempList = new List<int>() { parts };
+            //    Main.BuildingMechs.Add(readyMech, tempList);
+            //}
+            //else
+            //{
+            //    Main.BuildingMechs[readyMech].Add(parts);
+            //}
+            //try
+            //{
 
-                Main.BuiltMechs[readyMech].Remove(parts);
-            }
-            catch { }
+            //    Main.BuiltMechs[readyMech].Remove(parts);
+            //}
+            //catch { }
         }
 
         public static void Postfix(SimGameState __instance, int baySlot)
@@ -97,13 +98,22 @@ namespace SalvageOperations.Patches
 
         public static void Postfix(WorkOrderEntry_ReadyMech order)
         {
-            var TempTag = order.Mech.MechTags.First(x => x.StartsWith($"SO-Building-"));
-            order.Mech.MechTags.Remove(TempTag);
+            try
+            {
+                var TempTag = order.Mech.MechTags.First(x => x.StartsWith($"SO-Building-"));
+                order.Mech.MechTags.Remove(TempTag);
+            }
+            catch
+            {
 
-            var match = Regex.Match(TempTag, @"SO-Building-(.+)~(\d)$");
-            var MDString = match.Groups[1].ToString();
-            var MDCount = int.Parse(match.Groups[2].ToString());
-            Main.BuildingMechs[MDString].Remove(MDCount);
+            }
+
+            //var match = Regex.Match(TempTag, @"SO-Building-(.+)~(\d)$");
+            //var MDString = match.Groups[1].ToString();
+            //var MDCount = int.Parse(match.Groups[2].ToString());
+            //Logger.Log(MDString + MDCount);
+            //Main.BuildingMechs[MDString].Remove(MDCount);
+            //Logger.Log("Donezo");
         }
     }
 
