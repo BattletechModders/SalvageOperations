@@ -22,7 +22,6 @@ namespace SalvageOperations.Patches
             }
             catch (Exception ex)
             {
-                Logger.Error(ex);
             }
         }
     }
