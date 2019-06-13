@@ -506,7 +506,6 @@ namespace SalvageOperations
         {
             var simGame = UnityGameInstance.BattleTechGame.Simulation;
             var tempCompanyTags = simGame.CompanyTags;
-            Log("Convert Tags");
             foreach (var tag in tempCompanyTags)
             {
 
