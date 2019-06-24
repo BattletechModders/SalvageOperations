@@ -12,6 +12,10 @@ namespace SalvageOperations.Patches
     {
         public static void Postfix(SimGameState ___simState, ref int __result)
         {
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             if (Main.Settings.SalvageValueUsesSellPrice && ___simState != null)
                 __result = (int) (__result * ___simState.Constants.Finances.ShopSellModifier);
         }

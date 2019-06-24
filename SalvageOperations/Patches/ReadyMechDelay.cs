@@ -16,6 +16,9 @@ namespace SalvageOperations.Patches
 
         public static void Prefix(ChassisDef ___selectedChassis)
         {
+            if (Main.Settings.DependsOnArgoUpgrade && !Sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             var readyMech = ___selectedChassis.Description.Id.Replace("chassisdef", "mechdef");
 
             //In here for save compatiblity for previous bug.
@@ -33,6 +36,9 @@ namespace SalvageOperations.Patches
 
         public static void Postfix()
         {
+            if (Main.Settings.DependsOnArgoUpgrade && !Sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             Sim.Constants.Story.MechReadyTime = readyTimeState;
         }
     }
@@ -48,6 +54,9 @@ namespace SalvageOperations.Patches
 
         public static void Prefix(SimGameState __instance, string id)
         {
+            if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             var readyMech = id.Replace("chassisdef", "mechdef");
 
             //In here for save compatiblity for previous bug.
@@ -85,6 +94,9 @@ namespace SalvageOperations.Patches
 
         public static void Postfix(SimGameState __instance, int baySlot)
         {
+            if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             var mechDef = __instance.ReadyingMechs[baySlot];
             __instance.Constants.Story.MechReadyTime = readyTimeState;
             mechDef.MechTags.Add(BuildingString);
@@ -94,14 +106,23 @@ namespace SalvageOperations.Patches
     [HarmonyPatch(typeof(SimGameState), "ML_ReadyMech")]
     public class SimGameState_ML_ReadyMech_Patch
     {
-        private static readonly SimGameState Sim = UnityGameInstance.BattleTechGame.Simulation;
-
         public static void Postfix(WorkOrderEntry_ReadyMech order)
         {
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             try
             {
                 var TempTag = order.Mech.MechTags.First(x => x.StartsWith($"SO-Building-"));
                 order.Mech.MechTags.Remove(TempTag);
+
+                if (sim.Constants.Salvage.EquipMechOnSalvage && Main.EquippedMechs.Keys.Contains(order.Mech.Description.Id) && Main.EquippedMechs[order.Mech.Description.Id] > 0)
+                {
+                    var NewMechDef = sim.DataManager.MechDefs.Get(order.MechID);
+                    order.Mech.SetInventory(NewMechDef.Inventory);
+                    Main.EquippedMechs[order.Mech.Description.Id]--;
+                }
             }
             catch
             {
@@ -123,6 +144,9 @@ namespace SalvageOperations.Patches
         public static void Prefix(WorkOrderEntry_ReadyMech order)
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             MechDef mech = order.Mech;
             string tempTagName = mech.MechTags.First(x => x.StartsWith($"SO-Building-"));
            
@@ -146,9 +170,13 @@ namespace SalvageOperations.Patches
     {
         public static void Postfix(SimGameState __instance, MechDef def)
         {
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             string StorageTag = "SO-Assembled-" + def.Description.Id + "~" + __instance.Constants.Story.DefaultMechPartMax;
             __instance.CompanyTags.Add(StorageTag);
-            Main.ConvertCompanyTags();
+            Main.ConvertCompanyTags(false);
         }
     }
 }

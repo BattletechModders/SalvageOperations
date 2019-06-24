@@ -1,6 +1,7 @@
 using BattleTech.UI;
 using Harmony;
 using UnityEngine;
+using BattleTech;
 
 namespace SalvageOperations.Patches
 {
@@ -9,6 +10,10 @@ namespace SalvageOperations.Patches
     {
         public static void Prefix(MechBayChassisUnitElement __instance)
         {
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             // if salvage mech icon is shift-clicked, force assembly checking on that chassis
             if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
             {

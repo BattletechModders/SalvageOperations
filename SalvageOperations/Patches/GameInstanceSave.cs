@@ -1,5 +1,6 @@
 using BattleTech.Save;
 using Harmony;
+using BattleTech;
 
 namespace SalvageOperations.Patches
 {
@@ -9,6 +10,10 @@ namespace SalvageOperations.Patches
     {
         public static void Postfix()
         {
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             Main.HasBeenBuilt.Clear();
         }
     }

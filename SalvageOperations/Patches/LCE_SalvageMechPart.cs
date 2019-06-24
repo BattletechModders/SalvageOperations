@@ -13,6 +13,9 @@ namespace SalvageOperations.Patches
     {
         public static void Postfix(ListElementController_SalvageMechPart_NotListView __instance, InventoryItemElement_NotListView theWidget, SimGameState ___simState)
         {
+            if (Main.Settings.DependsOnArgoUpgrade && !___simState.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             var defaultMechPartMax = ___simState.Constants.Story.DefaultMechPartMax;
             Main.ExcludedVariantHolder = __instance.mechDef;
             var thisMechPieces = Main.GetMechParts(___simState, __instance.mechDef);

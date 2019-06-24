@@ -27,7 +27,7 @@ namespace SalvageOperations
         internal static MechDef ExcludedVariantHolder;
 
         public static Dictionary<string, List<int>> BuiltMechs = new Dictionary<string, List<int>>();
-        //public static Dictionary<string, List<int>> BuildingMechs = new Dictionary<string, List<int>>();
+        public static Dictionary<string, int> EquippedMechs = new Dictionary<string, int>();
 
         private static SimGameEventTracker eventTracker = new SimGameEventTracker();
         private static bool _hasInitEventTracker;
@@ -117,7 +117,7 @@ namespace SalvageOperations
             return GetAllMatchingVariants(dataManager, mechDef.Chassis.Description.UIName);
         }
 
-        private static string GetItemStatID(string id, string type)
+        public static string GetItemStatID(string id, string type)
         {
             return $"Item.{type}.{id}";
         }
@@ -139,7 +139,7 @@ namespace SalvageOperations
             SalvageFromContract.Clear();
             HasBeenBuilt.Clear();
             sim.CompanyTags.Remove("SO_Salvaging");
-            ConvertCompanyTags();
+            ConvertCompanyTags(true);
         }
 
         internal static void GlobalBuild()
@@ -502,7 +502,7 @@ namespace SalvageOperations
                 }
             }
         }
-        public static void ConvertCompanyTags()
+        public static void ConvertCompanyTags(bool newMech)
         {
             var simGame = UnityGameInstance.BattleTechGame.Simulation;
             var tempCompanyTags = simGame.CompanyTags;
@@ -528,6 +528,14 @@ namespace SalvageOperations
                             BuiltMechs[MDString].Add(MDCount);
                         }
                         simGame.CompanyTags.Remove(tag);
+
+                        if (newMech)
+                        {
+                            if (!EquippedMechs.Keys.Contains(MDString))
+                                EquippedMechs.Add(MDString, 1);
+                            else
+                                EquippedMechs[MDString]++;
+                        }
                     }
                     catch
                     {

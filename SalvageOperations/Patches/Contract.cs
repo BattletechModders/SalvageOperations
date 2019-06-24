@@ -17,6 +17,8 @@ namespace SalvageOperations.Patches
         public static void Postfix(Contract __instance, List<UnitResult> enemyMechs)
         {
             var simGame = __instance.BattleTechGame.Simulation;
+            if (Main.Settings.DependsOnArgoUpgrade && !simGame.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
 
             if (simGame == null || !Main.Settings.ReplaceMechSalvageLogic)
                 return;
