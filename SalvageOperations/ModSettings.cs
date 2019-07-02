@@ -17,6 +17,8 @@ namespace SalvageOperations
         public bool ReplaceMechSalvageLogic = true;
         public List<string> VariantExceptions = new List<string>();
         public bool ExcludeVariantExceptions = true;
+        public bool DependsOnArgoUpgrade = false;
+        public string ArgoUpgrade = "";
 
         public bool Debug = false;
 

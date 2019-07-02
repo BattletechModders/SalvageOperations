@@ -9,6 +9,10 @@ namespace SalvageOperations.Patches
     {
         public static void Prefix(ChassisDef chassisDef, ref int partsCount, ref int partsMax, int chassisQuantity)
         {
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             if (chassisDef != null)
             {
                 partsMax = 99;
@@ -26,6 +30,10 @@ namespace SalvageOperations.Patches
     {
         public static void Prefix(MechBayChassisInfoWidget __instance, ChassisDef ___selectedChassis, int __state)
         {
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             if (___selectedChassis != null)
             {
                 __state = ___selectedChassis.MechPartMax;
@@ -35,19 +43,14 @@ namespace SalvageOperations.Patches
 
         public static void Postfix(MechBayChassisInfoWidget __instance, ChassisDef ___selectedChassis, int __state)
         {
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             if (___selectedChassis != null)
             {
                 ___selectedChassis.MechPartMax = __state;
             }
-        }
-    }
-
-    [HarmonyPatch(typeof(SimGameState), "UnreadyMech")]
-    public static class SimGameState_UnreadyMech_Patch
-    {
-        public static void Prefix(SimGameState __instance, MechDef def)
-        {
-            def.Chassis.ChassisTags.Add("SO_Built");
         }
     }
     
@@ -57,6 +60,10 @@ namespace SalvageOperations.Patches
     {
         public static void Prefix(SimGameState __instance, ref float partMax)
         {
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             partMax = __instance.Constants.Story.DefaultMechPartMax;
         }
     }
