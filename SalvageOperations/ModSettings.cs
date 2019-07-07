@@ -19,6 +19,8 @@ namespace SalvageOperations
         public bool ExcludeVariantExceptions = true;
         public bool DependsOnArgoUpgrade = false;
         public string ArgoUpgrade = "";
+        public bool MechsMustHaveSameMass = false;
+        public bool MechsMustHaveSameSpeed = false;
 
         public bool Debug = false;
 
