@@ -17,6 +17,8 @@ namespace SalvageOperations.Patches
     {
         public static void Postfix(SimGameState __instance)
         {
+            if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
             var hotkey = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(Main.Settings.Hotkey);
             if (hotkey)
             {
@@ -45,6 +47,9 @@ namespace SalvageOperations.Patches
     {
         public static bool Prefix(SimGameState __instance, string id)
         {
+            if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return true;
+
             // this function replaces the function from SimGameState, prefix return false
             // just add the piece
             if (id != null)
@@ -66,6 +71,7 @@ namespace SalvageOperations.Patches
             {
                 Main.ExcludedVariantHolder = __instance.DataManager.MechDefs.Get(id);
                 Main.TryBuildMechs(__instance, new Dictionary<string, int> {{id, 1}});
+                Main.ConvertCompanyTags(true);
             }
 
             return false;
@@ -77,6 +83,9 @@ namespace SalvageOperations.Patches
     {
         public static void Prefix(SimGameState __instance)
         {
+            if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             Main.ContractStart();
             __instance.CompanyTags.Add("SO_Salvaging");
             Main.HasBeenBuilt.Clear();
@@ -84,8 +93,12 @@ namespace SalvageOperations.Patches
 
         public static void Postfix(SimGameState __instance)
         {
+            if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             foreach (var mechID in Main.SalvageFromContract.Keys)
             {
+
                 var mechDef = __instance.DataManager.MechDefs.Get(mechID);
                 if (!Main.HasBeenBuilt.ContainsKey(mechDef.Description.Name))
                 {
@@ -95,6 +108,7 @@ namespace SalvageOperations.Patches
             }
 
             __instance.CompanyTags.Remove("SO_Salvaging");
+            Main.ConvertCompanyTags(true);
             Main.ContractEnd();
         }
     }
@@ -104,6 +118,10 @@ namespace SalvageOperations.Patches
     {
         public static void Postfix(List<ResultDescriptionEntry> __result, SimGameStat[] stats, GameContext context, string prefix)
         {
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
             if (stats.All(stat => !stat.name.StartsWith("Item.MECHPART.") && !stat.name.StartsWith("Item.MechDef.")))
                 return;
 
@@ -147,6 +165,22 @@ namespace SalvageOperations.Patches
                 __result.Add(new ResultDescriptionEntry(new Text(
                     $"{prefix} {Interpolator.Interpolate(text, gameContext, false)}"), gameContext, stat.name));
             }
+        }
+    }
+
+    [HarmonyPatch(typeof(SimGameState), "ApplySimGameEventResult", new[] { typeof(SimGameEventResult), typeof(List<object>), typeof(SimGameEventTracker) }) ]
+    public static class SimGameState_ApplySimGameEventResult_Patch
+    {
+        public static void Postfix()
+        {
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
+            Main.ConvertCompanyTags(true);
         }
     }
 }
