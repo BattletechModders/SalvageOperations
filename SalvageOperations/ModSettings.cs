@@ -21,6 +21,7 @@ namespace SalvageOperations
         public string ArgoUpgrade = "";
         public bool MechsMustHaveSameMass = false;
         public bool MechsMustHaveSameSpeed = false;
+        public int MinimumPartsForSalvage = 1;
 
         public bool Debug = false;
 

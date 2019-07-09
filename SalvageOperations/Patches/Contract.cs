@@ -62,6 +62,8 @@ namespace SalvageOperations.Patches
 
                 var mechParts = (int)Math.Round(bits - (1 - Main.Settings.Rounding_Cutoff));
                 Main.HBSLog.Log($"= floor({bits}) = {mechParts}");
+                if (mechParts < Main.Settings.MinimumPartsForSalvage)
+                    mechParts = Main.Settings.MinimumPartsForSalvage;
 
                 if (mechParts > 0)
                     instanceTraverse.Method("CreateAndAddMechPart", simGame.Constants, mechDef, mechParts, finalPotentialSalvage).GetValue();
