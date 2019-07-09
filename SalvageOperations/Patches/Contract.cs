@@ -65,6 +65,8 @@ namespace SalvageOperations.Patches
                     mechParts = Main.Settings.MinimumMechParts;
 
                 Main.HBSLog.Log($"= floor({bits}) = {mechParts}");
+                if (mechParts < Main.Settings.MinimumPartsForSalvage)
+                    mechParts = Main.Settings.MinimumPartsForSalvage;
 
                 if (mechParts > 0)
                     instanceTraverse.Method("CreateAndAddMechPart", simGame.Constants, mechDef, mechParts, finalPotentialSalvage).GetValue();

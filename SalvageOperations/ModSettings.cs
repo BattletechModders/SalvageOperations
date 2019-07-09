@@ -19,7 +19,9 @@ namespace SalvageOperations
         public bool ExcludeVariantExceptions = true;
         public bool DependsOnArgoUpgrade = false;
         public string ArgoUpgrade = "";
-        public int MinimumMechParts = 1;
+        public bool MechsMustHaveSameMass = false;
+        public bool MechsMustHaveSameSpeed = false;
+        public int MinimumPartsForSalvage = 1;
 
         public bool Debug = false;
 
