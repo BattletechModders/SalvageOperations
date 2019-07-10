@@ -61,8 +61,8 @@ namespace SalvageOperations.Patches
                 }
 
                 var mechParts = (int)Math.Round(bits - (1 - Main.Settings.Rounding_Cutoff));
-                if (mechParts < Main.Settings.MinimumMechParts)
-                    mechParts = Main.Settings.MinimumMechParts;
+                if (mechParts < Main.Settings.MinimumPartsForSalvage)
+                    mechParts = Main.Settings.MinimumPartsForSalvage;
 
                 Main.HBSLog.Log($"= floor({bits}) = {mechParts}");
                 if (mechParts < Main.Settings.MinimumPartsForSalvage)
