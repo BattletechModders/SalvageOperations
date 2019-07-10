@@ -10,7 +10,8 @@ namespace SalvageOperations.Patches
     {
         public static void Postfix()
         {
-            Main.HasBeenBuilt.Clear();
+            if (Main.HasBeenBuilt != null)
+                Main.HasBeenBuilt.Clear();
         }
     }
 }
