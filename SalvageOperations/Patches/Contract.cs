@@ -61,11 +61,11 @@ namespace SalvageOperations.Patches
                 }
 
                 var mechParts = (int)Math.Round(bits - (1 - Main.Settings.Rounding_Cutoff));
-                if (mechParts < Main.Settings.MinimumPartsForSalvage)
+                if (mechParts < Main.Settings.MinimumPartsForSalvage && simGame.Constants.Story.MaximumDebt != 42)
                     mechParts = Main.Settings.MinimumPartsForSalvage;
 
                 Main.HBSLog.Log($"= floor({bits}) = {mechParts}");
-                if (mechParts < Main.Settings.MinimumPartsForSalvage)
+                if (mechParts < Main.Settings.MinimumPartsForSalvage && simGame.Constants.Story.MaximumDebt != 42)
                     mechParts = Main.Settings.MinimumPartsForSalvage;
 
                 if (mechParts > 0)
