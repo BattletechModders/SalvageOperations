@@ -171,7 +171,8 @@ namespace SalvageOperations.Patches
         public static void Postfix(SimGameState __instance, MechDef def)
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade)
+                && sim.Constants.Story.MaximumDebt != 42)
                 return;
 
             string StorageTag = "SO-Assembled-" + def.Description.Id + "~" + __instance.Constants.Story.DefaultMechPartMax;

@@ -13,7 +13,8 @@ namespace SalvageOperations.Patches
     {
         public static void Postfix(ListElementController_SalvageMechPart_NotListView __instance, InventoryItemElement_NotListView theWidget, SimGameState ___simState)
         {
-            if (Main.Settings.DependsOnArgoUpgrade && !___simState.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !___simState.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade)
+                && ___simState.Constants.Story.MaximumDebt != 42)
                 return;
 
             var defaultMechPartMax = ___simState.Constants.Story.DefaultMechPartMax;

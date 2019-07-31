@@ -61,7 +61,8 @@ namespace SalvageOperations.Patches
         public static void Prefix(SimGameState __instance, ref float partMax)
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade)
+                && sim.Constants.Story.MaximumDebt != 42)
                 return;
 
             partMax = __instance.Constants.Story.DefaultMechPartMax;
