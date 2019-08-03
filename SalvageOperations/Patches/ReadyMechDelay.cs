@@ -16,7 +16,8 @@ namespace SalvageOperations.Patches
 
         public static void Prefix(ChassisDef ___selectedChassis)
         {
-            if (Main.Settings.DependsOnArgoUpgrade && !Sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !Sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade)
+                && Sim.Constants.Story.MaximumDebt != 42)
                 return;
 
             var readyMech = ___selectedChassis.Description.Id.Replace("chassisdef", "mechdef");
@@ -36,7 +37,8 @@ namespace SalvageOperations.Patches
 
         public static void Postfix()
         {
-            if (Main.Settings.DependsOnArgoUpgrade && !Sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !Sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade)
+                && Sim.Constants.Story.MaximumDebt != 42)
                 return;
 
             Sim.Constants.Story.MechReadyTime = readyTimeState;
@@ -54,7 +56,8 @@ namespace SalvageOperations.Patches
 
         public static void Prefix(SimGameState __instance, string id)
         {
-            if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade)
+                && Sim.Constants.Story.MaximumDebt != 42)
                 return;
 
             var readyMech = id.Replace("chassisdef", "mechdef");
@@ -94,7 +97,8 @@ namespace SalvageOperations.Patches
 
         public static void Postfix(SimGameState __instance, int baySlot)
         {
-            if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade)
+                && __instance.Constants.Story.MaximumDebt != 42)
                 return;
 
             var mechDef = __instance.ReadyingMechs[baySlot];
@@ -109,7 +113,8 @@ namespace SalvageOperations.Patches
         public static void Postfix(WorkOrderEntry_ReadyMech order)
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade)
+                && sim.Constants.Story.MaximumDebt != 42)
                 return;
 
             try
@@ -144,7 +149,8 @@ namespace SalvageOperations.Patches
         public static void Prefix(WorkOrderEntry_ReadyMech order)
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade)
+                && sim.Constants.Story.MaximumDebt != 42)
                 return;
 
             MechDef mech = order.Mech;

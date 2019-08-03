@@ -10,7 +10,8 @@ namespace SalvageOperations.Patches
         public static void Prefix(ChassisDef chassisDef, ref int partsCount, ref int partsMax, int chassisQuantity)
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade)
+                && sim.Constants.Story.MaximumDebt != 42)
                 return;
 
             if (chassisDef != null)
@@ -25,13 +26,15 @@ namespace SalvageOperations.Patches
         }
     }
 
+    //TODO: The use of __state here is an ineligant kludge and a better way should be found to address this problem. 
     [HarmonyPatch(typeof(MechBayChassisInfoWidget), "SetDescriptions")]
     public static class MechBayChassisInfoWidget_SetDescriptions_Patch
     {
-        public static void Prefix(MechBayChassisInfoWidget __instance, ChassisDef ___selectedChassis, int __state)
+        public static void Prefix(MechBayChassisInfoWidget __instance, ChassisDef ___selectedChassis, ref int __state)
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade)
+                && sim.Constants.Story.MaximumDebt != 42)
                 return;
 
             if (___selectedChassis != null)
@@ -41,10 +44,11 @@ namespace SalvageOperations.Patches
             }
         }
 
-        public static void Postfix(MechBayChassisInfoWidget __instance, ChassisDef ___selectedChassis, int __state)
+        public static void Postfix(MechBayChassisInfoWidget __instance, ChassisDef ___selectedChassis, ref int __state)
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade)
+                && sim.Constants.Story.MaximumDebt != 42)
                 return;
 
             if (___selectedChassis != null)
