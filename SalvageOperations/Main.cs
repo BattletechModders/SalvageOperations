@@ -448,7 +448,7 @@ namespace SalvageOperations
                 new RequirementDef {Scope = EventScope.Company},
                 new RequirementDef[0],
                 new SimGameEventObject[0],
-                options, 1, false);
+                options, 1, false, null);
             if (!_hasInitEventTracker)
             {
                 eventTracker.Init(new[] {EventScope.Company}, 0, 0, SimGameEventDef.SimEventType.NORMAL, simGame);
