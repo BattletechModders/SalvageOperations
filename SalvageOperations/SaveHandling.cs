@@ -52,7 +52,7 @@ namespace SalvageOperations
         {
             public static void Prefix(SimGameState __instance)
             {
-                if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
                     return;
 
                 SerializeSO();

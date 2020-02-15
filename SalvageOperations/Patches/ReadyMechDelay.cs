@@ -16,7 +16,7 @@ namespace SalvageOperations.Patches
 
         public static void Prefix(ChassisDef ___selectedChassis)
         {
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !Sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
                 return;
 
             var readyMech = ___selectedChassis.Description.Id.Replace("chassisdef", "mechdef");
@@ -36,7 +36,7 @@ namespace SalvageOperations.Patches
 
         public static void Postfix()
         {
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !Sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
                 return;
 
             Sim.Constants.Story.MechReadyTime = readyTimeState;
@@ -54,7 +54,7 @@ namespace SalvageOperations.Patches
 
         public static void Prefix(SimGameState __instance, string id)
         {
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
                 return;
 
             var readyMech = id.Replace("chassisdef", "mechdef");
@@ -94,7 +94,7 @@ namespace SalvageOperations.Patches
 
         public static void Postfix(SimGameState __instance, int baySlot)
         {
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
                 return;
 
             var mechDef = __instance.ReadyingMechs[baySlot];

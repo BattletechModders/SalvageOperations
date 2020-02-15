@@ -17,7 +17,7 @@ namespace SalvageOperations.Patches
     {
         public static void Postfix(SimGameState __instance)
         {
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
                 return;
             var hotkey = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(Main.Settings.Hotkey);
             if (hotkey)
@@ -47,7 +47,7 @@ namespace SalvageOperations.Patches
     {
         public static bool Prefix(SimGameState __instance, string id)
         {
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
                 return true;
 
             // this function replaces the function from SimGameState, prefix return false
@@ -83,7 +83,7 @@ namespace SalvageOperations.Patches
     {
         public static void Prefix(SimGameState __instance)
         {
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
                 return;
 
             Main.ContractStart();
@@ -93,7 +93,7 @@ namespace SalvageOperations.Patches
 
         public static void Postfix(SimGameState __instance)
         {
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+            if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
                 return;
 
             foreach (var mechID in Main.SalvageFromContract.Keys)
