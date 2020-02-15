@@ -12,8 +12,7 @@ namespace SalvageOperations.Patches
         public static void Prefix()
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade)
-                && sim.Constants.Story.MaximumDebt != 42)
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
                 return;
 
             var mechBayPanel = (MechBayPanel) UIManager.Instance.Find(x => x.IsType(typeof(MechBayPanel)));

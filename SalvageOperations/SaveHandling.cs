@@ -32,8 +32,7 @@ namespace SalvageOperations
             static void Postfix(SimGameState __instance, GameInstanceSave gameInstanceSave)
             {
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
-                if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade)
-                    && sim.Constants.Story.MaximumDebt != 42)
+                if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
                     return;
 
                 if (sim.CompanyTags.Any(x => x.StartsWith("SOSAVE{")))
@@ -53,8 +52,7 @@ namespace SalvageOperations
         {
             public static void Prefix(SimGameState __instance)
             {
-                if (Main.Settings.DependsOnArgoUpgrade && !__instance.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade)
-                    && __instance.Constants.Story.MaximumDebt != 42)
+                if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
                     return;
 
                 SerializeSO();

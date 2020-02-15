@@ -13,8 +13,7 @@ namespace SalvageOperations.Patches
         public static void Postfix(SimGameState ___simState, ref int __result)
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade)
-                && sim.Constants.Story.MaximumDebt != 42)
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
                 return;
 
             if (Main.Settings.SalvageValueUsesSellPrice && ___simState != null)

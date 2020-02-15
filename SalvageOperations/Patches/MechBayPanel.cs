@@ -11,8 +11,7 @@ namespace SalvageOperations.Patches
         public static bool Prefix()
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade)
-                && sim.Constants.Story.MaximumDebt != 42)
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
                 return true;
 
             // if Storage is shift-clicked, force assembly checking
