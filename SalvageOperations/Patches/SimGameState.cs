@@ -176,10 +176,7 @@ namespace SalvageOperations.Patches
             var sim = UnityGameInstance.BattleTechGame.Simulation;
             if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
                 return;
-
-            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
-                return;
-
+            
             Main.ConvertCompanyTags(true);
         }
     }

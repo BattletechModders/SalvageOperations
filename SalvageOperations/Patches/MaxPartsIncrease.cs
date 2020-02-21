@@ -25,10 +25,11 @@ namespace SalvageOperations.Patches
         }
     }
 
+    //TODO: The use of __state here is an ineligant kludge and a better way should be found to address this problem. 
     [HarmonyPatch(typeof(MechBayChassisInfoWidget), "SetDescriptions")]
     public static class MechBayChassisInfoWidget_SetDescriptions_Patch
     {
-        public static void Prefix(MechBayChassisInfoWidget __instance, ChassisDef ___selectedChassis, int __state)
+        public static void Prefix(MechBayChassisInfoWidget __instance, ChassisDef ___selectedChassis, ref int __state)
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
             if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
@@ -41,7 +42,7 @@ namespace SalvageOperations.Patches
             }
         }
 
-        public static void Postfix(MechBayChassisInfoWidget __instance, ChassisDef ___selectedChassis, int __state)
+        public static void Postfix(MechBayChassisInfoWidget __instance, ChassisDef ___selectedChassis, ref int __state)
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;
             if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))

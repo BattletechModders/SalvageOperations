@@ -25,7 +25,6 @@ namespace SalvageOperations.Patches
                 theWidget.mechPartsNumbersText.SetText($"{thisMechPieces} ({allMechPieces}) / {defaultMechPartMax}");
             else
                 theWidget.mechPartsNumbersText.SetText($"{thisMechPieces} (R) / {defaultMechPartMax}");
-                
         }
     }
 }

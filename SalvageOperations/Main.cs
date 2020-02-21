@@ -75,11 +75,15 @@ namespace SalvageOperations
 
         private static List<MechDef> GetAllMatchingVariants(DataManager dataManager, string UIName)
         {
+            var MechWeight = ExcludedVariantHolder.Chassis.InitialTonnage;
+            var MechSpeed = ExcludedVariantHolder.Chassis.TopSpeed;
             var variants = new List<MechDef>();
             try
             {
                 dataManager.MechDefs
-                    .Where(x => !string.IsNullOrEmpty(x.Value.Chassis.Description.UIName) &&  x.Value.Chassis.Description.UIName == UIName)
+                    .Where(x => !string.IsNullOrEmpty(x.Value.Chassis.Description.UIName) && x.Value.Chassis.Description.UIName == UIName &&
+                    (Settings.MechsMustHaveSameMass && x.Value.Chassis.InitialTonnage == MechWeight)
+                    && (Settings.MechsMustHaveSameSpeed && x.Value.Chassis.TopSpeed == MechSpeed))
                     .Do(x => variants.Add(x.Value)); // thanks harmony for the do extension method
             }
             catch
@@ -313,14 +317,13 @@ namespace SalvageOperations
                         var tempOption = options[1];
                         options[1] = options[0];
                         options[2] = tempOption;
-                    }
 
-                    options[0] = new SimGameEventOption
-                    {
-                        Description = new BaseDescriptionDef(TriggeredVariant, $"Build the {mechDef.Description.UIName} ({mechParts[TriggeredVariant]} Parts)", TriggeredVariant, ""),
-                        RequirementList = null,
-                        ResultSets = new[]
+                        options[0] = new SimGameEventOption
                         {
+                            Description = new BaseDescriptionDef(TriggeredVariant, $"Build the {mechDef.Description.UIName} ({mechParts[TriggeredVariant]} Parts)", TriggeredVariant, ""),
+                            RequirementList = null,
+                            ResultSets = new[]
+                            {
                             new SimGameEventResultSet
                             {
                                 Description = new BaseDescriptionDef(TriggeredVariant, TriggeredVariant, $"You tell Yang that you want him to build the [[DM.MechDefs[{TriggeredVariant}],{{DM.MechDefs[{TriggeredVariant}].Description.UIName}}]] and his eyes light up. \"I can't wait to get started.\"\r\n\r\nHe starts to move behind the pile of scrap, then calls out, \"Oh, and don't forget to submit a work order to 'Ready' the 'Mech when you want to get started on the refit. Remember, the less pieces of this variant you gave me, the longer it will take to get to full working order.\"", ""),
@@ -328,7 +331,8 @@ namespace SalvageOperations
                                 Results = GetBuildMechEventResult(simGame, mechDef)
                             }
                         }
-                    };
+                        };
+                    }
 
                     HBSLog.Log("Had more than 3 options, truncating at 3");
                     break;
@@ -444,7 +448,7 @@ namespace SalvageOperations
                 new RequirementDef {Scope = EventScope.Company},
                 new RequirementDef[0],
                 new SimGameEventObject[0],
-                options, 1, false);
+                options, 1, false, null);
             if (!_hasInitEventTracker)
             {
                 eventTracker.Init(new[] {EventScope.Company}, 0, 0, SimGameEventDef.SimEventType.NORMAL, simGame);

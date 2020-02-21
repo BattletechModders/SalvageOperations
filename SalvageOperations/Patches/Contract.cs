@@ -17,9 +17,7 @@ namespace SalvageOperations.Patches
         public static void Postfix(Contract __instance, List<UnitResult> enemyMechs)
         {
             var simGame = __instance.BattleTechGame.Simulation;
-            if (Main.Settings.DependsOnArgoUpgrade && !simGame.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
-                return;
-
+            
             if (simGame == null || !Main.Settings.ReplaceMechSalvageLogic)
                 return;
 
@@ -63,7 +61,12 @@ namespace SalvageOperations.Patches
                 }
 
                 var mechParts = (int)Math.Round(bits - (1 - Main.Settings.Rounding_Cutoff));
+                if (mechParts < Main.Settings.MinimumPartsForSalvage)
+                    mechParts = Main.Settings.MinimumPartsForSalvage;
+
                 Main.HBSLog.Log($"= floor({bits}) = {mechParts}");
+                if (mechParts < Main.Settings.MinimumPartsForSalvage)
+                    mechParts = Main.Settings.MinimumPartsForSalvage;
 
                 if (mechParts > 0)
                     instanceTraverse.Method("CreateAndAddMechPart", simGame.Constants, mechDef, mechParts, finalPotentialSalvage).GetValue();
